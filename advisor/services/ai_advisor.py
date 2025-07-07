@@ -1,11 +1,13 @@
+# advisor/services/ai_advisor.py
+
 import requests
 import json
 import uuid
 from django.conf import settings
-from .models import SubsidyType, Answer, ConversationHistory
+from ..models import SubsidyType, Answer, ConversationHistory
 
 class DifyAIAdvisorService:
-    """DifyのGPT-4を使用するAIアドバイザーサービス（修正版）"""
+    """DifyのGPT-4を使用するAIアドバイザーサービス"""
     
     def __init__(self):
         # settings.pyから正しく値を取得
@@ -274,11 +276,13 @@ class DifyAIAdvisorService:
             'model_used': 'mock-fallback'
         }
 
+
 # 既存のサービスクラスをDify版に置き換え
 AIAdvisorService = DifyAIAdvisorService
 
+
 class ConversationManager:
-    """会話履歴管理（既存のまま）"""
+    """会話履歴管理"""
     
     @staticmethod
     def save_conversation(session_id, user, message_type, content):

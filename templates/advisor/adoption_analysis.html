@@ -1,0 +1,564 @@
+{% extends 'base.html' %}
+
+{% block title %}採択率分析 - 補助金アドバイザー{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- メインコンテンツ -->
+    <div class="col-lg-8">
+        <!-- 補助金選択 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line"></i> 補助金採択率分析</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="subsidySelect" class="form-label">分析する補助金を選択</label>
+                        <select class="form-select" id="subsidySelect">
+                            <option value="">全体統計を表示</option>
+                            {% for subsidy in subsidies %}
+                                <option value="{{ subsidy.id }}" 
+                                        {% if selected_subsidy and selected_subsidy.id == subsidy.id %}selected{% endif %}>
+                                    {{ subsidy.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="yearsSelect" class="form-label">分析期間</label>
+                        <select class="form-select" id="yearsSelect">
+                            <option value="1">過去1年</option>
+                            <option value="3" selected>過去3年</option>
+                            <option value="5">過去5年</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 統計グラフ -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="fas fa-chart-bar"></i> 採択率推移</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="adoptionChart" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- 採択可能性チェック -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="fas fa-calculator"></i> あなたの採択可能性をチェック</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="checkBusinessType" class="form-label">事業種別</label>
+                        <select class="form-select" id="checkBusinessType">
+                            <option value="">選択してください</option>
+                            <option value="製造業">製造業</option>
+                            <option value="建設業">建設業</option>
+                            <option value="運輸業">運輸業</option>
+                            <option value="卸売業">卸売業</option>
+                            <option value="小売業">小売業</option>
+                            <option value="サービス業">サービス業</option>
+                            <option value="IT・情報通信業">IT・情報通信業</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="checkCompanySize" class="form-label">企業規模</label>
+                        <select class="form-select" id="checkCompanySize">
+                            <option value="">選択してください</option>
+                            <option value="小規模事業者">小規模事業者（従業員20人以下）</option>
+                            <option value="中小企業">中小企業</option>
+                            <option value="中堅企業">中堅企業</option>
+                            <option value="大企業">大企業</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="checkSubsidy" class="form-label">対象補助金</label>
+                        <select class="form-select" id="checkSubsidy">
+                            <option value="">選択してください</option>
+                            {% for subsidy in subsidies %}
+                                <option value="{{ subsidy.id }}">{{ subsidy.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-primary" id="checkProbabilityBtn">
+                        <i class="fas fa-search"></i> 採択可能性を分析
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分析結果表示エリア -->
+        <div id="analysisResult" style="display: none;">
+            <!-- 採択可能性スコア -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-trophy"></i> 採択可能性スコア</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div id="probabilityScore" class="display-1 fw-bold mb-3"></div>
+                    <div id="probabilityMessage" class="mb-3"></div>
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div id="probabilityBar" class="progress-bar" role="progressbar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- スコアカード -->
+            <div id="scoreCard" class="card mb-4" style="display: none;">
+                <div class="card-header">
+                    <h6><i class="fas fa-clipboard-check"></i> 詳細スコアカード</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="scoreDetails"></div>
+                    <div class="mt-3">
+                        <h6>改善提案</h6>
+                        <div id="improvementSuggestions"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 推奨アクション -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-lightbulb"></i> 推奨アクション</h6>
+                </div>
+                <div class="card-body" id="recommendations"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- サイドバー -->
+    <div class="col-lg-4">
+        <!-- 採択率向上ティップス -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="fas fa-tips"></i> 採択率向上のコツ</h6>
+            </div>
+            <div class="card-body" id="adoptionTips">
+                <p class="text-muted">補助金を選択すると、採択率向上のためのティップスが表示されます。</p>
+            </div>
+        </div>
+
+        <!-- 業種別比較 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="fas fa-industry"></i> 業種別採択率</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="industryChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- 申請履歴 -->
+        {% if user.is_authenticated %}
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-history"></i> あなたの申請履歴</h6>
+            </div>
+            <div class="card-body" id="applicationHistory">
+                <p class="text-muted">申請履歴を読み込み中...</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+class AdoptionAnalysisInterface {
+    constructor() {
+        this.subsidySelect = document.getElementById('subsidySelect');
+        this.yearsSelect = document.getElementById('yearsSelect');
+        this.checkProbabilityBtn = document.getElementById('checkProbabilityBtn');
+        this.analysisResult = document.getElementById('analysisResult');
+        
+        this.adoptionChart = null;
+        this.industryChart = null;
+        
+        this.initializeEventListeners();
+        this.loadInitialData();
+    }
+
+    initializeEventListeners() {
+        this.subsidySelect.addEventListener('change', () => {
+            this.loadStatistics();
+            this.loadTips();
+        });
+
+        this.yearsSelect.addEventListener('change', () => {
+            this.loadStatistics();
+        });
+
+        this.checkProbabilityBtn.addEventListener('click', () => {
+            this.checkProbability();
+        });
+    }
+
+    async loadInitialData() {
+        await this.loadStatistics();
+        if (this.subsidySelect.value) {
+            await this.loadTips();
+        }
+        
+        {% if user.is_authenticated %}
+        await this.loadApplicationHistory();
+        {% endif %}
+    }
+
+    async loadStatistics() {
+        try {
+            const subsidyId = this.subsidySelect.value;
+            const years = this.yearsSelect.value;
+            
+            const url = subsidyId ? 
+                `/api/adoption-statistics/${subsidyId}/?years=${years}` : 
+                `/api/adoption-statistics/?years=${years}`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            this.updateChart(data);
+            this.updateIndustryChart(data);
+            
+        } catch (error) {
+            console.error('Error loading statistics:', error);
+        }
+    }
+
+    async loadTips() {
+        const subsidyId = this.subsidySelect.value;
+        if (!subsidyId) {
+            document.getElementById('adoptionTips').innerHTML = 
+                '<p class="text-muted">補助金を選択すると、採択率向上のためのティップスが表示されます。</p>';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/adoption-tips/${subsidyId}/`);
+            const tips = await response.json();
+            
+            this.displayTips(tips);
+        } catch (error) {
+            console.error('Error loading tips:', error);
+        }
+    }
+
+    displayTips(tips) {
+        const container = document.getElementById('adoptionTips');
+        container.innerHTML = '';
+
+        for (const [category, categoryTips] of Object.entries(tips)) {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'mb-3';
+            
+            categoryDiv.innerHTML = `
+                <h6 class="text-primary">${category}</h6>
+                ${categoryTips.map(tip => `
+                    <div class="tip-item mb-2 p-2 border-start border-3 ${this.getImportanceClass(tip.importance)}">
+                        <strong>${tip.title}</strong>
+                        <p class="small mb-1">${tip.content}</p>
+                        ${tip.effective_timing ? `<small class="text-muted">効果的な時期: ${tip.effective_timing}</small>` : ''}
+                        ${tip.reference_url ? `<br><a href="${tip.reference_url}" target="_blank" class="small">参考資料 <i class="fas fa-external-link-alt"></i></a>` : ''}
+                    </div>
+                `).join('')}
+            `;
+            
+            container.appendChild(categoryDiv);
+        }
+    }
+
+    getImportanceClass(importance) {
+        switch(importance) {
+            case 4: return 'border-danger';
+            case 3: return 'border-warning';
+            case 2: return 'border-primary';
+            default: return 'border-secondary';
+        }
+    }
+
+    async checkProbability() {
+        const subsidyId = document.getElementById('checkSubsidy').value;
+        const businessType = document.getElementById('checkBusinessType').value;
+        const companySize = document.getElementById('checkCompanySize').value;
+
+        if (!subsidyId) {
+            alert('補助金を選択してください');
+            return;
+        }
+
+        this.checkProbabilityBtn.disabled = true;
+        this.checkProbabilityBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 分析中...';
+
+        try {
+            const response = await fetch('/api/adoption-probability/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                },
+                body: JSON.stringify({
+                    subsidy_id: subsidyId,
+                    context: {
+                        business_type: businessType,
+                        company_size: companySize
+                    }
+                })
+            });
+
+            const result = await response.json();
+            this.displayAnalysisResult(result);
+
+        } catch (error) {
+            console.error('Error checking probability:', error);
+            alert('分析中にエラーが発生しました');
+        } finally {
+            this.checkProbabilityBtn.disabled = false;
+            this.checkProbabilityBtn.innerHTML = '<i class="fas fa-search"></i> 採択可能性を分析';
+        }
+    }
+
+    displayAnalysisResult(result) {
+        // 採択可能性スコアを表示
+        const scoreElement = document.getElementById('probabilityScore');
+        const messageElement = document.getElementById('probabilityMessage');
+        const barElement = document.getElementById('probabilityBar');
+
+        scoreElement.textContent = `${result.probability}%`;
+        barElement.style.width = `${result.probability}%`;
+        
+        // 確率に応じて色を変更
+        let colorClass = 'bg-success';
+        let message = '採択可能性が高いです！';
+        
+        if (result.probability < 30) {
+            colorClass = 'bg-danger';
+            message = '改善が必要です';
+        } else if (result.probability < 60) {
+            colorClass = 'bg-warning';
+            message = '改善の余地があります';
+        } else if (result.probability < 80) {
+            colorClass = 'bg-primary';
+            message = '良好な可能性です';
+        }
+
+        barElement.className = `progress-bar ${colorClass}`;
+        messageElement.textContent = message;
+
+        // スコアカードを表示（ログインユーザーのみ）
+        if (result.scorecard) {
+            this.displayScoreCard(result.scorecard);
+        }
+
+        // 推奨アクションを表示
+        this.displayRecommendations(result.recommendations);
+
+        this.analysisResult.style.display = 'block';
+        this.analysisResult.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    displayScoreCard(scorecard) {
+        const scoreCard = document.getElementById('scoreCard');
+        const scoreDetails = document.getElementById('scoreDetails');
+        const suggestions = document.getElementById('improvementSuggestions');
+
+        // スコア詳細を表示
+        scoreDetails.innerHTML = `
+            ${Object.entries(scorecard.scores).map(([key, value]) => `
+                <div class="col-md-6 mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>${this.getScoreLabel(key)}</span>
+                        <span class="fw-bold">${value}点</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar ${this.getScoreColor(value)}" 
+                             style="width: ${value}%"></div>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+
+        // 改善提案を表示
+        if (scorecard.improvement_suggestions && scorecard.improvement_suggestions.length > 0) {
+            suggestions.innerHTML = scorecard.improvement_suggestions.map(suggestion => `
+                <div class="alert alert-${this.getPriorityColor(suggestion.priority)} alert-sm">
+                    <strong>${suggestion.category}:</strong> ${suggestion.suggestion}
+                </div>
+            `).join('');
+        } else {
+            suggestions.innerHTML = '<p class="text-success">特に改善が必要な項目はありません。</p>';
+        }
+
+        scoreCard.style.display = 'block';
+    }
+
+    displayRecommendations(recommendations) {
+        const container = document.getElementById('recommendations');
+        
+        container.innerHTML = recommendations.map(rec => `
+            <div class="alert alert-${rec.type}">
+                <h6 class="alert-heading">${rec.title}</h6>
+                <p class="mb-0">${rec.content}</p>
+            </div>
+        `).join('');
+    }
+
+    updateChart(data) {
+        const ctx = document.getElementById('adoptionChart').getContext('2d');
+        
+        if (this.adoptionChart) {
+            this.adoptionChart.destroy();
+        }
+
+        // データを整理
+        const datasets = [];
+        const labels = [];
+
+        for (const [subsidyName, subsidyData] of Object.entries(data)) {
+            const yearlyData = subsidyData.yearly_data;
+            
+            // ラベル（年度）を設定
+            if (labels.length === 0) {
+                yearlyData.forEach(item => {
+                    labels.push(`${item.year}年度 第${item.round}回`);
+                });
+            }
+
+            datasets.push({
+                label: subsidyName,
+                data: yearlyData.map(item => item.adoption_rate),
+                borderColor: this.getRandomColor(),
+                backgroundColor: this.getRandomColor(0.1),
+                fill: false,
+                tension: 0.1
+            });
+        }
+
+        this.adoptionChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '採択率の推移'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    updateIndustryChart(data) {
+        // 業種別データがある場合のみチャートを更新
+        // 実装は必要に応じて追加
+    }
+
+    async loadApplicationHistory() {
+        try {
+            const response = await fetch('/api/user-application-history/');
+            const history = await response.json();
+            
+            const container = document.getElementById('applicationHistory');
+            
+            if (history.length === 0) {
+                container.innerHTML = '<p class="text-muted">申請履歴がありません</p>';
+                return;
+            }
+
+            container.innerHTML = history.map(app => `
+                <div class="border-bottom pb-2 mb-2">
+                    <div class="d-flex justify-content-between">
+                        <strong>${app.subsidy_name}</strong>
+                        <span class="badge bg-${this.getStatusColor(app.status)}">${app.status_display}</span>
+                    </div>
+                    <small class="text-muted">申請日: ${app.application_date}</small>
+                    ${app.requested_amount ? `<br><small>申請額: ${app.requested_amount.toLocaleString()}円</small>` : ''}
+                </div>
+            `).join('');
+
+        } catch (error) {
+            console.error('Error loading application history:', error);
+        }
+    }
+
+    getScoreLabel(key) {
+        const labels = {
+            'business_plan': '事業計画',
+            'innovation': '革新性',
+            'feasibility': '実現可能性',
+            'market_potential': '市場性',
+            'financial_health': '財務健全性'
+        };
+        return labels[key] || key;
+    }
+
+    getScoreColor(score) {
+        if (score >= 80) return 'bg-success';
+        if (score >= 60) return 'bg-primary';
+        if (score >= 40) return 'bg-warning';
+        return 'bg-danger';
+    }
+
+    getPriorityColor(priority) {
+        return priority === 'high' ? 'warning' : 'info';
+    }
+
+    getStatusColor(status) {
+        const colors = {
+            'preparing': 'secondary',
+            'submitted': 'primary',
+            'under_review': 'info',
+            'adopted': 'success',
+            'rejected': 'danger',
+            'withdrawn': 'secondary'
+        };
+        return colors[status] || 'secondary';
+    }
+
+    getRandomColor(alpha = 1) {
+        const colors = [
+            `rgba(54, 162, 235, ${alpha})`,
+            `rgba(255, 99, 132, ${alpha})`,
+            `rgba(255, 205, 86, ${alpha})`,
+            `rgba(75, 192, 192, ${alpha})`,
+            `rgba(153, 102, 255, ${alpha})`,
+            `rgba(255, 159, 64, ${alpha})`
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    getCSRFToken() {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        return cookieValue || '';
+    }
+}
+
+// ページ読み込み完了時に初期化
+document.addEventListener('DOMContentLoaded', () => {
+    new AdoptionAnalysisInterface();
+});
+</script>
+{% endblock %}
