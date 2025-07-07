@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <!-- メインチャットエリア -->
+    <div class="col-lg-8">
+        <div class="chat-container" id="chatContainer">
+            <div class="welcome-message">
+                <i class="fas fa-robot"></i>
+                <h5>補助金について何でもお聞きください</h5>
+                <p class="mb-0">例：「IT導入補助金を申請したいのですが、どのような準備が必要ですか？」</p>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            AIが回答を生成中です...
+        </div>
+
+        <div class="input-section mt-3">
+            <form id="questionForm">
+                <div class="row g-2">
+                    <div class="col">
+                        <textarea 
+                            class="form-control" 
+                            id="questionInput" 
+                            placeholder="補助金について質問してください..."
+                            rows="2"
+                            style="resize: none;"
+                            required
+                        ></textarea>
+                    </div>
+                    <div class="col-auto">
+                        <button 
+                            type="submit" 
+                            class="btn btn-send h-100 px-4"
+                            id="sendButton"
+                        >
+                            <i class="fas fa-paper-plane"></i>
+                            送信
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- サイドバー -->
+    <div class="col-lg-4">
+        <div class="sidebar">
+            <h5><i class="fas fa-user-cog"></i> 事業情報</h5>
+            <div class="context-form">
+                <div class="mb-3">
+                    <label for="businessType" class="form-label">事業種別</label>
+                    <select class="form-select" id="businessType">
+                        <option value="">選択してください</option>
+                        <option value="製造業">製造業</option>
+                        <option value="建設業">建設業</option>
+                        <option value="運輸業">運輸業</option>
+                        <option value="卸売業">卸売業</option>
+                        <option value="小売業">小売業</option>
+                        <option value="サービス業">サービス業</option>
+                        <option value="IT・情報通信業">IT・情報通信業</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="companySize" class="form-label">企業規模</label>
+                    <select class="form-select" id="companySize">
+                        <option value="">選択してください</option>
+                        <option value="小規模事業者">小規模事業者（従業員20人以下）</option>
+                        <option value="中小企業">中小企業</option>
+                        <option value="中堅企業">中堅企業</option>
+                        <option value="大企業">大企業</option>
+                    </select>
+                </div>
+                <small class="text-muted">
+                    事業情報を設定すると、より適切な補助金をご提案できます
+                </small>
+            </div>
+
+            <h6><i class="fas fa-list"></i> よくある質問</h6>
+            <div class="list-group list-group-flush">
+                <button class="list-group-item list-group-item-action quick-question" 
+                        data-question="IT導入補助金について教えてください">
+                    <i class="fas fa-laptop-code"></i> IT導入補助金について
+                </button>
+                <button class="list-group-item list-group-item-action quick-question" 
+                        data-question="事業再構築補助金の申請条件を教えてください">
+                    <i class="fas fa-sync-alt"></i> 事業再構築補助金の条件
+                </button>
+                <button class="list-group-item list-group-item-action quick-question" 
+                        data-question="小規模事業者持続化補助金について詳しく教えてください">
+                    <i class="fas fa-store"></i> 持続化補助金について
+                </button>
+                <button class="list-group-item list-group-item-action quick-question" 
+                        data-question="製造業向けの補助金を教えてください">
+                    <i class="fas fa-industry"></i> 製造業向け補助金
+                </button>
+                <button class="list-group-item list-group-item-action quick-question" 
+                        data-question="設備投資に使える補助金はありますか？">
+                    <i class="fas fa-tools"></i> 設備投資補助金
+                </button>
+            </div>
+        </div>
+
+        <!-- 推奨補助金表示エリア -->
+        <div class="sidebar mt-4" id="recommendedSubsidies" style="display: none;">
+            <h6><i class="fas fa-star text-warning"></i> 推奨補助金</h6>
+            <div id="subsidyList"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+class ChatInterface {
+    constructor() {
+        this.sessionId = '{{ session_id }}';
+        this.chatContainer = document.getElementById('chatContainer');
+        this.questionForm = document.getElementById('questionForm');
+        this.questionInput = document.getElementById('questionInput');
+        this.sendButton = document.getElementById('sendButton');
+        this.typingIndicator = document.getElementById('typingIndicator');
+        this.businessType = document.getElementById('businessType');
+        this.companySize = document.getElementById('companySize');
+        this.recommendedSubsidies = document.getElementById('recommendedSubsidies');
+        this.subsidyList = document.getElementById('subsidyList');
+
+        this.initializeEventListeners();
+        this.loadConversationHistory();
+    }
+
+    initializeEventListeners() {
+        this.questionForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.sendQuestion();
+        });
+
+        this.questionInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendQuestion();
+            }
+        });
+
+        // よくある質問のクリックイベント
+        document.querySelectorAll('.quick-question').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const question = e.currentTarget.dataset.question;
+                this.questionInput.value = question;
+                this.sendQuestion();
+            });
+        });
+    }
+
+    async sendQuestion() {
+        const questionText = this.questionInput.value.trim();
+        if (!questionText) return;
+
+        // UIを無効化
+        this.setLoading(true);
+
+        // ユーザーメッセージを表示
+        this.addMessage(questionText, 'user');
+
+        // 質問フィールドをクリア
+        this.questionInput.value = '';
+
+        // コンテキスト情報を収集
+        const context = {
+            business_type: this.businessType.value,
+            company_size: this.companySize.value
+        };
+
+        try {
+            const response = await fetch('/api/question/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                },
+                body: JSON.stringify({
+                    question: questionText,
+                    session_id: this.sessionId,
+                    context: context
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // AI回答を表示
+            this.addMessage(data.answer, 'ai', data.confidence_score);
+
+            // 推奨補助金を表示
+            if (data.recommended_subsidies && data.recommended_subsidies.length > 0) {
+                this.showRecommendedSubsidies(data.recommended_subsidies);
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            this.addMessage(
+                '申し訳ございませんが、システムエラーが発生しました。少し時間をおいて再度お試しください。',
+                'ai',
+                0
+            );
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    addMessage(content, type, confidenceScore = null) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+
+        let messageHTML = `<div>${this.formatMessage(content)}</div>`;
+
+        if (type === 'ai' && confidenceScore !== null) {
+            const badgeClass = confidenceScore > 0.8 ? 'bg-success' : 
+                             confidenceScore > 0.6 ? 'bg-warning' : 'bg-secondary';
+            messageHTML += `
+                <div class="mt-2">
+                    <span class="badge ${badgeClass} confidence-badge">
+                        信頼度: ${Math.round(confidenceScore * 100)}%
+                    </span>
+                </div>
+            `;
+        }
+
+        messageDiv.innerHTML = messageHTML;
+
+        // ウェルカムメッセージを削除
+        const welcomeMessage = this.chatContainer.querySelector('.welcome-message');
+        if (welcomeMessage) {
+            welcomeMessage.remove();
+        }
+
+        this.chatContainer.appendChild(messageDiv);
+        this.scrollToBottom();
+    }
+
+    formatMessage(content) {
+        // マークダウン風の簡単なフォーマット
+        return content
+            .replace(/## (.*)/g, '<h6 class="fw-bold mt-3 mb-2">$1</h6>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+    }
+
+    showRecommendedSubsidies(subsidies) {
+        this.subsidyList.innerHTML = '';
+        
+        subsidies.forEach(subsidy => {
+            const subsidyCard = document.createElement('div');
+            subsidyCard.className = 'subsidy-card';
+            subsidyCard.innerHTML = `
+                <h6 class="fw-bold text-primary">${subsidy.name}</h6>
+                <p class="small mb-2">${subsidy.description}</p>
+                <div class="row small text-muted">
+                    <div class="col-6">
+                        <i class="fas fa-yen-sign"></i> 
+                        最大${(subsidy.max_amount / 10000).toLocaleString()}万円
+                    </div>
+                    <div class="col-6">
+                        <i class="fas fa-percentage"></i> 
+                        ${subsidy.subsidy_rate}
+                    </div>
+                </div>
+            `;
+            this.subsidyList.appendChild(subsidyCard);
+        });
+
+        this.recommendedSubsidies.style.display = 'block';
+    }
+
+    setLoading(isLoading) {
+        this.sendButton.disabled = isLoading;
+        this.questionInput.disabled = isLoading;
+        
+        if (isLoading) {
+            this.typingIndicator.style.display = 'block';
+            this.sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 処理中...';
+        } else {
+            this.typingIndicator.style.display = 'none';
+            this.sendButton.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+        }
+    }
+
+    scrollToBottom() {
+        this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+    }
+
+    getCSRFToken() {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        return cookieValue || '';
+    }
+
+    async loadConversationHistory() {
+        try {
+            const response = await fetch(`/api/history/${this.sessionId}/`);
+            if (response.ok) {
+                const history = await response.json();
+                history.reverse().forEach(message => {
+                    this.addMessage(message.content, message.message_type);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load conversation history:', error);
+        }
+    }
+}
+
+// ページ読み込み完了時にチャットインターフェースを初期化
+document.addEventListener('DOMContentLoaded', () => {
+    new ChatInterface();
+});
+</script>
+{% endblock %}
