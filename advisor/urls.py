@@ -1,4 +1,4 @@
-# advisor/urls.py の修正版（重複を除去し、テストエンドポイントを追加）
+# advisor/urls.py に追加
 
 from django.urls import path
 from . import views
@@ -6,10 +6,8 @@ from . import views
 app_name = 'advisor'
 
 urlpatterns = [
-    # メインページ
+    # 既存のURL
     path('', views.ChatView.as_view(), name='chat'),
-    
-    # チャット機能API
     path('api/question/', views.QuestionAPIView.as_view(), name='question_api'),
     path('api/subsidies/', views.subsidy_list, name='subsidy_list'),
     path('api/history/<str:session_id>/', views.conversation_history, name='conversation_history'),
@@ -17,8 +15,6 @@ urlpatterns = [
     # 採択率分析機能
     path('analysis/', views.AdoptionAnalysisView.as_view(), name='adoption_analysis'),
     path('analysis/<int:subsidy_id>/', views.AdoptionAnalysisView.as_view(), name='adoption_analysis_detail'),
-    
-    # 採択率分析API（修正版）
     path('api/adoption-statistics/', views.adoption_statistics_api, name='adoption_statistics'),
     path('api/adoption-statistics/<int:subsidy_id>/', views.adoption_statistics_api, name='adoption_statistics_detail'),
     path('api/adoption-tips/<int:subsidy_id>/', views.adoption_tips_api, name='adoption_tips'),
@@ -39,7 +35,10 @@ urlpatterns = [
     path('api/generate-predictions/', views.GeneratePredictionsView.as_view(), name='generate_predictions'),
     path('api/prediction-summary/', views.prediction_summary_api, name='prediction_summary'),
     
-    # 🆕 デバッグ・テスト用エンドポイント
+    # デバッグ・テスト用エンドポイント
     path('api/test-adoption-data/', views.test_adoption_data, name='test_adoption_data'),
     path('api/create-sample-adoption-data/', views.create_sample_adoption_data, name='create_sample_adoption_data'),
+    
+    # 🆕 詳細回答テスト用エンドポイント
+    path('api/test-detailed-response/', views.test_detailed_response, name='test_detailed_response'),
 ]
