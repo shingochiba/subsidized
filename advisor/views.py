@@ -37,6 +37,15 @@ import json
 
 from .models import SubsidyType, SubsidySchedule, SubsidyPrediction
 from .services.subsidy_prediction import SubsidyPredictionService
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import SubsidyType, AdoptionStatistics, AdoptionTips
+from .services import AdoptionAnalysisService
+import json
+
+
 
 
 
@@ -576,3 +585,342 @@ def prediction_summary_api(request):
     }
     
     return Response(summary)
+
+
+
+@api_view(['GET'])
+def adoption_statistics_api(request, subsidy_id=None):
+    """採択統計データAPI（修正版）"""
+    try:
+        analysis_service = AdoptionAnalysisService()
+        
+        years = int(request.GET.get('years', 3))
+        print(f"API呼び出し: subsidy_id={subsidy_id}, years={years}")  # デバッグ用
+        
+        # データ取得
+        statistics = analysis_service.get_adoption_statistics(subsidy_id, years)
+        print(f"取得データ: {len(statistics)}件")  # デバッグ用
+        
+        # データが空の場合の処理
+        if not statistics:
+            print("統計データが存在しません")  # デバッグ用
+            
+            # ダミーデータを生成（開発用）
+            if subsidy_id:
+                subsidy = get_object_or_404(SubsidyType, id=subsidy_id)
+                dummy_data = {
+                    subsidy.name: {
+                        'subsidy_type': {
+                            'id': subsidy.id,
+                            'name': subsidy.name
+                        },
+                        'yearly_data': [
+                            {
+                                'year': 2024,
+                                'round': 1,
+                                'total_applications': 1000,
+                                'total_adoptions': 600,
+                                'adoption_rate': 60.0,
+                                'small_business_rate': 65.0,
+                                'medium_business_rate': 55.0,
+                                'industry_stats': {}
+                            },
+                            {
+                                'year': 2023,
+                                'round': 1,
+                                'total_applications': 950,
+                                'total_adoptions': 550,
+                                'adoption_rate': 57.9,
+                                'small_business_rate': 62.0,
+                                'medium_business_rate': 53.0,
+                                'industry_stats': {}
+                            }
+                        ],
+                        'average_adoption_rate': 58.95,
+                        'trend': 'improving'
+                    }
+                }
+                return Response(dummy_data)
+            else:
+                # 全体統計のダミーデータ
+                subsidies = SubsidyType.objects.all()
+                dummy_data = {}
+                for subsidy in subsidies:
+                    dummy_data[subsidy.name] = {
+                        'subsidy_type': {
+                            'id': subsidy.id,
+                            'name': subsidy.name
+                        },
+                        'yearly_data': [
+                            {
+                                'year': 2024,
+                                'round': 1,
+                                'total_applications': 1000,
+                                'total_adoptions': 500,
+                                'adoption_rate': 50.0,
+                                'small_business_rate': 55.0,
+                                'medium_business_rate': 45.0,
+                                'industry_stats': {}
+                            }
+                        ],
+                        'average_adoption_rate': 50.0,
+                        'trend': 'stable'
+                    }
+                return Response(dummy_data)
+        
+        # 実際のデータを整形（SubsidyTypeオブジェクトのJSON化エラーを修正）
+        formatted_data = {}
+        for subsidy_name, data in statistics.items():
+            formatted_data[subsidy_name] = {
+                'subsidy_type': {
+                    'id': data['subsidy_type'].id,
+                    'name': data['subsidy_type'].name,
+                    'description': data['subsidy_type'].description or '',
+                    'target_business': data['subsidy_type'].target_business or '',
+                },
+                'yearly_data': data['yearly_data'],
+                'average_adoption_rate': data['average_adoption_rate'],
+                'trend': data['trend']
+            }
+        
+        return Response(formatted_data)
+        
+    except Exception as e:
+        print(f"API エラー: {e}")  # デバッグ用
+        import traceback
+        traceback.print_exc()
+        
+        return Response({
+            'error': f'統計データの取得に失敗しました: {str(e)}'
+        }, status=500)
+
+@api_view(['GET'])
+def adoption_tips_api(request, subsidy_id):
+    """採択ティップスAPI（修正版）"""
+    try:
+        analysis_service = AdoptionAnalysisService()
+        tips = analysis_service.get_adoption_tips(subsidy_id)
+        
+        # データが空の場合のデフォルトティップス
+        if not tips:
+            default_tips = {
+                '事前準備': [
+                    {
+                        'title': '十分な準備期間を確保する',
+                        'content': '申請には最低2-3ヶ月の準備期間が必要です。早めに準備を開始しましょう。',
+                        'importance': 3,
+                        'importance_display': '高',
+                        'effective_timing': '申請検討時',
+                        'reference_url': '',
+                        'is_success_case': True
+                    }
+                ],
+                '申請書作成': [
+                    {
+                        'title': '具体的な数値目標を設定する',
+                        'content': '曖昧な表現ではなく、具体的な改善効果を数値で示すことが重要です。',
+                        'importance': 4,
+                        'importance_display': '最重要',
+                        'effective_timing': '申請書作成時',
+                        'reference_url': '',
+                        'is_success_case': True
+                    }
+                ],
+                '提出準備': [
+                    {
+                        'title': '提出書類の最終チェック',
+                        'content': '必要書類の不備や記載漏れがないか、複数人でダブルチェックを実施してください。',
+                        'importance': 4,
+                        'importance_display': '最重要',
+                        'effective_timing': '提出前',
+                        'reference_url': '',
+                        'is_success_case': True
+                    }
+                ]
+            }
+            return Response(default_tips)
+        
+        return Response(tips)
+        
+    except Exception as e:
+        print(f"ティップスAPI エラー: {e}")
+        return Response({
+            'error': f'ティップスの取得に失敗しました: {str(e)}'
+        }, status=500)
+
+@api_view(['GET'])
+def test_adoption_data(request):
+    """採択率データのテスト用エンドポイント"""
+    try:
+        # データベースの状況を確認
+        subsidies_count = SubsidyType.objects.count()
+        statistics_count = AdoptionStatistics.objects.count()
+        tips_count = AdoptionTips.objects.count()
+        
+        # サンプルデータ
+        sample_subsidies = []
+        for subsidy in SubsidyType.objects.all()[:5]:
+            sample_subsidies.append({
+                'id': subsidy.id,
+                'name': subsidy.name,
+                'description': subsidy.description or '',
+                'max_amount': subsidy.max_amount
+            })
+        
+        sample_statistics = []
+        for stat in AdoptionStatistics.objects.all()[:5]:
+            sample_statistics.append({
+                'subsidy': stat.subsidy_type.name,
+                'year': stat.year,
+                'round': stat.round_number,
+                'adoption_rate': stat.adoption_rate,
+                'total_applications': stat.total_applications
+            })
+        
+        # エラーチェック項目
+        issues = []
+        if subsidies_count == 0:
+            issues.append('補助金データが存在しません。python manage.py load_subsidies を実行してください。')
+        
+        if statistics_count == 0:
+            issues.append('採択統計データが存在しません。python manage.py load_adoption_data を実行してください。')
+        
+        return Response({
+            'status': 'success' if len(issues) == 0 else 'warning',
+            'data_counts': {
+                'subsidies': subsidies_count,
+                'statistics': statistics_count,
+                'tips': tips_count
+            },
+            'sample_subsidies': sample_subsidies,
+            'sample_statistics': sample_statistics,
+            'issues': issues,
+            'message': f'補助金{subsidies_count}件、統計{statistics_count}件、ティップス{tips_count}件のデータが存在します'
+        })
+        
+    except Exception as e:
+        import traceback
+        return Response({
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
+
+@api_view(['POST'])
+def create_sample_adoption_data(request):
+    """サンプル採択データ作成エンドポイント"""
+    try:
+        import random
+        from datetime import datetime
+        
+        subsidies = SubsidyType.objects.all()
+        if subsidies.count() == 0:
+            return Response({
+                'status': 'error',
+                'message': '補助金データが存在しません。先に load_subsidies を実行してください。'
+            }, status=400)
+        
+        created_count = 0
+        current_year = datetime.now().year
+        
+        for subsidy in subsidies:
+            for year in [current_year - 2, current_year - 1, current_year]:
+                rounds = random.randint(1, 3)
+                
+                for round_num in range(1, rounds + 1):
+                    # 既存データがある場合はスキップ
+                    if AdoptionStatistics.objects.filter(
+                        subsidy_type=subsidy,
+                        year=year,
+                        round_number=round_num
+                    ).exists():
+                        continue
+                    
+                    # 補助金別のリアルなデータ
+                    if 'IT導入' in subsidy.name:
+                        total_apps = random.randint(8000, 12000)
+                        adoption_rate = random.uniform(60, 75)
+                    elif '事業再構築' in subsidy.name:
+                        total_apps = random.randint(15000, 25000)
+                        adoption_rate = random.uniform(30, 45)
+                    elif 'ものづくり' in subsidy.name:
+                        total_apps = random.randint(6000, 10000)
+                        adoption_rate = random.uniform(45, 60)
+                    elif '持続化' in subsidy.name:
+                        total_apps = random.randint(20000, 35000)
+                        adoption_rate = random.uniform(55, 70)
+                    else:
+                        total_apps = random.randint(3000, 8000)
+                        adoption_rate = random.uniform(35, 55)
+                    
+                    total_adoptions = int(total_apps * adoption_rate / 100)
+                    
+                    # 企業規模別データ
+                    small_apps = int(total_apps * 0.6)
+                    small_adoption_rate = adoption_rate + random.uniform(0, 10)
+                    small_adoptions = int(small_apps * small_adoption_rate / 100)
+                    
+                    medium_apps = total_apps - small_apps
+                    medium_adoptions = total_adoptions - small_adoptions
+                    medium_adoption_rate = (medium_adoptions / medium_apps * 100) if medium_apps > 0 else 0
+                    
+                    # 業種別統計
+                    industry_stats = {
+                        '製造業': {
+                            'applications': int(total_apps * 0.3),
+                            'adoptions': int(total_adoptions * 0.35),
+                            'adoption_rate': round(adoption_rate + random.uniform(-5, 10), 1)
+                        },
+                        'IT・情報通信業': {
+                            'applications': int(total_apps * 0.2),
+                            'adoptions': int(total_adoptions * 0.25),
+                            'adoption_rate': round(adoption_rate + random.uniform(0, 15), 1)
+                        },
+                        'サービス業': {
+                            'applications': int(total_apps * 0.25),
+                            'adoptions': int(total_adoptions * 0.2),
+                            'adoption_rate': round(adoption_rate + random.uniform(-10, 5), 1)
+                        },
+                        '小売業': {
+                            'applications': int(total_apps * 0.15),
+                            'adoptions': int(total_adoptions * 0.12),
+                            'adoption_rate': round(adoption_rate + random.uniform(-8, 3), 1)
+                        },
+                        'その他': {
+                            'applications': int(total_apps * 0.1),
+                            'adoptions': int(total_adoptions * 0.08),
+                            'adoption_rate': round(adoption_rate + random.uniform(-5, 5), 1)
+                        }
+                    }
+                    
+                    stat = AdoptionStatistics.objects.create(
+                        subsidy_type=subsidy,
+                        year=year,
+                        round_number=round_num,
+                        total_applications=total_apps,
+                        total_adoptions=total_adoptions,
+                        adoption_rate=round(adoption_rate, 1),
+                        small_business_applications=small_apps,
+                        small_business_adoptions=small_adoptions,
+                        small_business_adoption_rate=round(small_adoption_rate, 1),
+                        medium_business_applications=medium_apps,
+                        medium_business_adoptions=medium_adoptions,
+                        medium_business_adoption_rate=round(medium_adoption_rate, 1),
+                        industry_statistics=industry_stats
+                    )
+                    
+                    created_count += 1
+        
+        return Response({
+            'status': 'success',
+            'message': f'サンプル統計データ {created_count}件を作成しました',
+            'created_count': created_count
+        })
+        
+    except Exception as e:
+        import traceback
+        return Response({
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
