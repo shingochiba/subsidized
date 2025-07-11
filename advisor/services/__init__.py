@@ -1,13 +1,15 @@
-﻿from .adoption_analysis import AdoptionAnalysisService
+﻿# advisor/services/__init__.py
+
+from .adoption_analysis import AdoptionAnalysisService
 
 # ConversationManagerを既存サービスから取得
 from .ai_advisor import ConversationManager
 
-# LLM強化版AIサービスを使用
-from .llm_enhanced_advisor import LLMEnhancedAdvisorService
+# 🆕 新しい文脈認識AIサービスを使用
+from .context_aware_ai_advisor import ContextAwareAIAdvisorService
 
-# メインサービスとして設定
-AIAdvisorService = LLMEnhancedAdvisorService
+# メインサービスとして設定（採択率専用回答機能付き）
+AIAdvisorService = ContextAwareAIAdvisorService
 
 __all__ = [
     'AIAdvisorService',
@@ -16,5 +18,7 @@ __all__ = [
 ]
 
 # デバッグ用
-print(' LLM Enhanced AI Advisor Service is now active!')
-print(f'AIAdvisorService = {AIAdvisorService}')
+print('🎯 Context-Aware AI Advisor Service is now active!')
+print(f'🔄 Using: {AIAdvisorService.__name__}')
+print(f'📍 Module: {AIAdvisorService.__module__}')
+print(f'📊 Features: Adoption Rate Analysis, Intent Recognition, Specialized Responses')

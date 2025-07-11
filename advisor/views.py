@@ -43,9 +43,11 @@ class ChatView(View):
         }
         return render(request, 'advisor/chat.html', context)
 
+# advisor/views.py の QuestionAPIView を以下のように更新
+
 @method_decorator(csrf_exempt, name='dispatch')
 class QuestionAPIView(View):
-    """質問処理API"""
+    """質問処理API（文脈認識対応）"""
     
     def post(self, request):
         try:
@@ -74,9 +76,13 @@ class QuestionAPIView(View):
                 question_text
             )
             
-            # AI分析
+            # AI分析（session_idを渡して文脈認識を有効化）
             ai_service = AIAdvisorService()
-            result = ai_service.analyze_question(question_text, user_context)
+            result = ai_service.analyze_question(
+                question_text, 
+                user_context, 
+                session_id=session_id  # ← 重要: session_idを追加
+            )
             
             # 回答を保存
             answer = Answer.objects.create(
@@ -118,7 +124,8 @@ class QuestionAPIView(View):
         except Exception as e:
             print(f"Error in QuestionAPIView: {e}")
             return JsonResponse({'error': 'システムエラーが発生しました'}, status=500)
-
+        
+        
 @api_view(['GET'])
 def subsidy_list(request):
     """補助金一覧API"""
