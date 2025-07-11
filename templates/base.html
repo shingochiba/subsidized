@@ -216,19 +216,103 @@
         .chat-container::-webkit-scrollbar-thumb:hover {
             background: #a8a8a8;
         }
+
+        .navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.nav-link {
+    transition: all 0.3s ease;
+    border-radius: 5px;
+    margin: 0 2px;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-radius: 10px;
+}
+
+.dropdown-item {
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+}
+
+@media (max-width: 768px) {
+    .navbar-text {
+        display: none;
+    }
+    
+    .nav-link {
+        margin: 2px 0;
+    }
+}
     </style>
 </head>
-<body>
-    <header class="header">
-        <div class="container">
-            <div class="row">
-                <div class="col-12 text-center">
-                    <h1><i class="fas fa-comments-dollar"></i> 補助金アドバイザー</h1>
-                    <p class="lead mb-0">あなたの事業に最適な補助金をAIがお教えします</p>
-                </div>
+<header class="header">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <nav class="navbar navbar-expand-lg navbar-dark">
+                    <div class="container-fluid">
+                        <a class="navbar-brand" href="{% url 'advisor:chat' %}">
+                            <i class="fas fa-comments-dollar"></i> 補助金アドバイザー
+                        </a>
+                        
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                            <ul class="navbar-nav me-auto">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'advisor:chat' %}">
+                                        <i class="fas fa-comments"></i> AI相談
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'advisor:adoption_analysis' %}">
+                                        <i class="fas fa-chart-line"></i> 採択率分析
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'advisor:subsidy_prediction' %}">
+                                        <i class="fas fa-calendar-alt"></i> 公募予測
+                                    </a>
+                                </li>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-tools"></i> その他の機能
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="/api/subsidies/">補助金一覧</a></li>
+                                        <li><a class="dropdown-item" href="/api/industry-comparison/">業種別比較</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="/admin/">管理画面</a></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                            
+                            <div class="navbar-text">
+                                <small>あなたの事業に最適な補助金をAIがお教えします</small>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
             </div>
         </div>
-    </header>
+    </div>
+</header>
 
     <main class="container">
         {% block content %}

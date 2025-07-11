@@ -3,7 +3,8 @@
 from django.contrib import admin
 from .models import (
     SubsidyType, Question, Answer, ConversationHistory,
-    AdoptionStatistics, AdoptionTips, UserApplicationHistory, ApplicationScoreCard
+    AdoptionStatistics, AdoptionTips, UserApplicationHistory, ApplicationScoreCard,
+    SubsidySchedule, SubsidyPrediction
 )
 
 # 既存の管理画面設定
@@ -193,3 +194,123 @@ admin.site.register(ConversationHistory)
 admin.site.site_header = '補助金アドバイザー 管理システム'
 admin.site.site_title = '補助金アドバイザー'
 admin.site.index_title = 'システム管理'
+
+
+
+@admin.register(SubsidySchedule)
+class SubsidyScheduleAdmin(admin.ModelAdmin):
+    list_display = [
+        'subsidy_type', 'year', 'round_number', 'application_start_date', 
+        'application_end_date', 'status', 'is_prediction', 'confidence_level'
+    ]
+    list_filter = [
+        'year', 'status', 'is_prediction', 'subsidy_type', 'application_start_date'
+    ]
+    search_fields = ['subsidy_type__name', 'notes']
+    date_hierarchy = 'application_start_date'
+    ordering = ['-year', '-application_start_date', 'subsidy_type']
+    
+    fieldsets = (
+        ('基本情報', {
+            'fields': ('subsidy_type', 'year', 'round_number', 'status')
+        }),
+        ('公募期間', {
+            'fields': (
+                'application_start_date', 'application_end_date', 
+                'result_announcement_date'
+            )
+        }),
+        ('事業期間', {
+            'fields': ('project_start_date', 'project_end_date'),
+            'classes': ('collapse',)
+        }),
+        ('予算情報', {
+            'fields': ('total_budget', 'allocated_budget'),
+            'classes': ('collapse',)
+        }),
+        ('予測情報', {
+            'fields': ('is_prediction', 'confidence_level'),
+            'description': '予測データの場合にチェック'
+        }),
+        ('備考', {
+            'fields': ('notes',),
+            'classes': ('collapse',)
+        }),
+        ('システム情報', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+            'description': '自動入力項目'
+        })
+    )
+    readonly_fields = ['created_at', 'updated_at']
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('subsidy_type')
+
+@admin.register(SubsidyPrediction)
+class SubsidyPredictionAdmin(admin.ModelAdmin):
+    list_display = [
+        'subsidy_type', 'predicted_year', 'predicted_round', 
+        'predicted_start_date', 'confidence_score', 'probability_percentage',
+        'prediction_basis', 'confidence_level_display'
+    ]
+    list_filter = [
+        'predicted_year', 'prediction_basis', 'confidence_score', 
+        'subsidy_type', 'predicted_start_date'
+    ]
+    search_fields = ['subsidy_type__name', 'prediction_notes', 'risk_factors']
+    date_hierarchy = 'predicted_start_date'
+    ordering = ['-predicted_start_date', 'subsidy_type']
+    
+    fieldsets = (
+        ('基本予測情報', {
+            'fields': ('subsidy_type', 'predicted_year', 'predicted_round')
+        }),
+        ('予測日程', {
+            'fields': (
+                'predicted_start_date', 'predicted_end_date', 
+                'predicted_announcement_date'
+            )
+        }),
+        ('予測根拠・信頼度', {
+            'fields': (
+                'prediction_basis', 'confidence_score', 'probability_percentage'
+            )
+        }),
+        ('詳細情報', {
+            'fields': ('prediction_notes', 'risk_factors'),
+            'classes': ('collapse',)
+        }),
+        ('参考データ', {
+            'fields': ('historical_data_years', 'last_year_date'),
+            'classes': ('collapse',)
+        }),
+        ('システム情報', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+            'description': '自動入力項目'
+        })
+    )
+    readonly_fields = ['created_at', 'updated_at']
+    
+    def confidence_level_display(self, obj):
+        return obj.confidence_level_display
+    confidence_level_display.short_description = '信頼度レベル'
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('subsidy_type')
+
+# インライン管理画面
+class SubsidyScheduleInline(admin.TabularInline):
+    model = SubsidySchedule
+    extra = 1
+    fields = ['year', 'round_number', 'application_start_date', 'application_end_date', 'status']
+
+class SubsidyPredictionInline(admin.TabularInline):
+    model = SubsidyPrediction
+    extra = 1
+    fields = ['predicted_year', 'predicted_round', 'predicted_start_date', 'confidence_score']
+
+# SubsidyTypeAdminに追加（既存の管理画面を拡張）
+# 既存のSubsidyTypeAdmin定義に以下を追加:
+# inlines = [SubsidyScheduleInline, SubsidyPredictionInline]

@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
+import datetime
 
 class SubsidyType(models.Model):
     """補助金の種類"""
@@ -223,3 +225,169 @@ class ApplicationScoreCard(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.subsidy_type.name} (スコア: {self.total_score})"
+    
+
+
+
+class SubsidySchedule(models.Model):
+    """補助金の公募スケジュール"""
+    subsidy_type = models.ForeignKey('SubsidyType', on_delete=models.CASCADE, related_name='schedules')
+    year = models.IntegerField(verbose_name="年度")
+    round_number = models.IntegerField(verbose_name="公募回次", default=1)
+    
+    # 公募期間
+    application_start_date = models.DateField(verbose_name="申請開始日")
+    application_end_date = models.DateField(verbose_name="申請締切日")
+    
+    # 結果発表
+    result_announcement_date = models.DateField(verbose_name="結果発表予定日", null=True, blank=True)
+    
+    # 事業実施期間
+    project_start_date = models.DateField(verbose_name="事業開始日", null=True, blank=True)
+    project_end_date = models.DateField(verbose_name="事業終了日", null=True, blank=True)
+    
+    # 予算情報
+    total_budget = models.BigIntegerField(verbose_name="総予算額", null=True, blank=True)
+    allocated_budget = models.BigIntegerField(verbose_name="配分予算額", null=True, blank=True)
+    
+    # ステータス
+    STATUS_CHOICES = [
+        ('scheduled', '予定'),
+        ('active', '公募中'),
+        ('closed', '締切済み'),
+        ('completed', '完了'),
+        ('cancelled', '中止'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled', verbose_name="ステータス")
+    
+    # メタ情報
+    notes = models.TextField(verbose_name="備考", blank=True)
+    is_prediction = models.BooleanField(verbose_name="予測データ", default=False)
+    confidence_level = models.IntegerField(
+        verbose_name="予測信頼度", 
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=50,
+        help_text="予測の信頼度（0-100%）"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "補助金スケジュール"
+        verbose_name_plural = "補助金スケジュール"
+        unique_together = ['subsidy_type', 'year', 'round_number']
+        ordering = ['year', 'application_start_date', 'round_number']
+
+    def __str__(self):
+        return f"{self.subsidy_type.name} {self.year}年度第{self.round_number}回"
+
+    @property
+    def is_active(self):
+        """現在公募中かどうか"""
+        today = datetime.date.today()
+        return (self.application_start_date <= today <= self.application_end_date 
+                and self.status == 'active')
+
+    @property
+    def is_upcoming(self):
+        """今後予定されているかどうか"""
+        today = datetime.date.today()
+        return self.application_start_date > today
+
+    @property
+    def days_until_start(self):
+        """開始までの日数"""
+        if self.is_upcoming:
+            return (self.application_start_date - datetime.date.today()).days
+        return 0
+
+    @property
+    def days_until_deadline(self):
+        """締切までの日数"""
+        if self.is_active:
+            return (self.application_end_date - datetime.date.today()).days
+        return 0
+
+class SubsidyPrediction(models.Model):
+    """補助金公募予測"""
+    subsidy_type = models.ForeignKey('SubsidyType', on_delete=models.CASCADE, related_name='predictions')
+    predicted_year = models.IntegerField(verbose_name="予測年度")
+    predicted_round = models.IntegerField(verbose_name="予測回次", default=1)
+    
+    # 予測日程
+    predicted_start_date = models.DateField(verbose_name="予測開始日")
+    predicted_end_date = models.DateField(verbose_name="予測締切日")
+    predicted_announcement_date = models.DateField(verbose_name="予測発表日", null=True, blank=True)
+    
+    # 予測根拠
+    PREDICTION_BASIS_CHOICES = [
+        ('historical', '過去実績'),
+        ('official_announcement', '公式発表'),
+        ('budget_cycle', '予算サイクル'),
+        ('policy_change', '政策変更'),
+        ('trend_analysis', 'トレンド分析'),
+    ]
+    prediction_basis = models.CharField(
+        max_length=30, 
+        choices=PREDICTION_BASIS_CHOICES, 
+        default='historical',
+        verbose_name="予測根拠"
+    )
+    
+    # 信頼度と確率
+    confidence_score = models.IntegerField(
+        verbose_name="信頼度スコア", 
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=70
+    )
+    
+    probability_percentage = models.FloatField(
+        verbose_name="実施確率", 
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=80.0
+    )
+    
+    # 予測詳細
+    prediction_notes = models.TextField(verbose_name="予測詳細", blank=True)
+    risk_factors = models.TextField(verbose_name="リスク要因", blank=True)
+    
+    # 参考データ
+    historical_data_years = models.IntegerField(verbose_name="参考年数", default=3)
+    last_year_date = models.DateField(verbose_name="昨年実施日", null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "補助金予測"
+        verbose_name_plural = "補助金予測"
+        unique_together = ['subsidy_type', 'predicted_year', 'predicted_round']
+        ordering = ['predicted_start_date']
+
+    def __str__(self):
+        return f"{self.subsidy_type.name} {self.predicted_year}年度第{self.predicted_round}回 予測"
+
+    @property
+    def confidence_level_display(self):
+        """信頼度の表示"""
+        if self.confidence_score >= 90:
+            return "非常に高い"
+        elif self.confidence_score >= 70:
+            return "高い"
+        elif self.confidence_score >= 50:
+            return "中程度"
+        else:
+            return "低い"
+
+    @property
+    def status_color(self):
+        """ステータス表示用の色"""
+        if self.confidence_score >= 80:
+            return "success"
+        elif self.confidence_score >= 60:
+            return "primary"
+        elif self.confidence_score >= 40:
+            return "warning"
+        else:
+            return "secondary"

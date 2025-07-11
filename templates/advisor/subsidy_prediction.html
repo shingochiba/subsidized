@@ -1,0 +1,481 @@
+{% extends 'base.html' %}
+
+{% block title %}補助金公募予測カレンダー - 補助金アドバイザー{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- メインコンテンツ -->
+    <div class="col-lg-9">
+        <!-- ヘッダー -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4><i class="fas fa-calendar-alt"></i> 補助金公募予測カレンダー</h4>
+                <p class="text-muted mb-0">過去のデータから今年度の公募予測を表示します</p>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" id="prevPeriod">
+                    <i class="fas fa-chevron-left"></i> 前期間
+                </button>
+                <button class="btn btn-outline-primary" id="nextPeriod">
+                    <i class="fas fa-chevron-right"></i> 次期間
+                </button>
+            </div>
+        </div>
+
+        <!-- 統計サマリー -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary" id="totalUpcoming">-</h5>
+                        <p class="card-text small">今後90日間</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-success" id="confirmedCount">-</h5>
+                        <p class="card-text small">確定済み</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-warning" id="predictedCount">-</h5>
+                        <p class="card-text small">予測データ</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-info" id="next30Days">-</h5>
+                        <p class="card-text small">今後30日間</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 予測カレンダー -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-calendar"></i> 月別公募予測</h5>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary active" data-filter="all">すべて</button>
+                    <button class="btn btn-outline-success" data-filter="confirmed">確定のみ</button>
+                    <button class="btn btn-outline-warning" data-filter="predicted">予測のみ</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="predictionCalendar">
+                    <!-- カレンダーデータがここに表示される -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- サイドバー -->
+    <div class="col-lg-3">
+        <!-- 今後の公募 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="fas fa-clock"></i> 今後30日間の公募</h6>
+            </div>
+            <div class="card-body p-0">
+                <div id="upcomingSubsidies" class="list-group list-group-flush">
+                    <!-- 今後の公募がここに表示される -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 信頼度について -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="fas fa-info-circle"></i> 予測について</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="small">信頼度レベル</h6>
+                    <div class="mb-2">
+                        <span class="badge bg-success">90%以上</span> 
+                        <small>非常に高い</small>
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-primary">70-89%</span> 
+                        <small>高い</small>
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-warning">50-69%</span> 
+                        <small>中程度</small>
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-secondary">50%未満</span> 
+                        <small>低い</small>
+                    </div>
+                </div>
+                <small class="text-muted">
+                    予測は過去3年間の実績データに基づいて算出されています。
+                    確実な情報は公式発表をご確認ください。
+                </small>
+            </div>
+        </div>
+
+        <!-- 予測更新 -->
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-sync-alt"></i> 予測データ管理</h6>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary btn-sm w-100 mb-2" id="generatePredictions">
+                    <i class="fas fa-magic"></i> 予測を生成
+                </button>
+                <button class="btn btn-outline-primary btn-sm w-100" id="refreshData">
+                    <i class="fas fa-refresh"></i> データを更新
+                </button>
+                <small class="text-muted d-block mt-2">
+                    最終更新: <span id="lastUpdate">{{ current_date|date:"Y/m/d" }}</span>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 詳細モーダル -->
+<div class="modal fade" id="subsidyDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- 詳細内容がここに表示される -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                <button type="button" class="btn btn-primary" id="setReminder">
+                    <i class="fas fa-bell"></i> リマインダー設定
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+class SubsidyPredictionInterface {
+    constructor() {
+        this.currentYear = {{ current_year }};
+        this.currentFilter = 'all';
+        
+        this.initializeEventListeners();
+        this.loadPredictionData();
+        this.loadSummaryData();
+        this.loadUpcomingSubsidies();
+    }
+
+    initializeEventListeners() {
+        // フィルター切り替え
+        document.querySelectorAll('[data-filter]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                this.currentFilter = e.target.dataset.filter;
+                this.renderCalendar();
+            });
+        });
+
+        // 期間切り替え
+        document.getElementById('prevPeriod').addEventListener('click', () => {
+            this.currentYear--;
+            this.loadPredictionData();
+        });
+
+        document.getElementById('nextPeriod').addEventListener('click', () => {
+            this.currentYear++;
+            this.loadPredictionData();
+        });
+
+        // 予測生成
+        document.getElementById('generatePredictions').addEventListener('click', () => {
+            this.generatePredictions();
+        });
+
+        // データ更新
+        document.getElementById('refreshData').addEventListener('click', () => {
+            this.loadPredictionData();
+            this.loadSummaryData();
+            this.loadUpcomingSubsidies();
+        });
+    }
+
+    async loadPredictionData() {
+        try {
+            const response = await fetch(`/api/prediction-calendar/?year=${this.currentYear}&months=6`);
+            this.calendarData = await response.json();
+            this.renderCalendar();
+        } catch (error) {
+            console.error('Error loading prediction data:', error);
+        }
+    }
+
+    async loadSummaryData() {
+        try {
+            const response = await fetch('/api/prediction-summary/');
+            const summary = await response.json();
+            
+            document.getElementById('totalUpcoming').textContent = summary.total_upcoming;
+            document.getElementById('confirmedCount').textContent = summary.confirmed_count;
+            document.getElementById('predictedCount').textContent = summary.predicted_count;
+            document.getElementById('next30Days').textContent = summary.next_30_days;
+        } catch (error) {
+            console.error('Error loading summary data:', error);
+        }
+    }
+
+    async loadUpcomingSubsidies() {
+        try {
+            const response = await fetch('/api/upcoming-subsidies/?days=30');
+            const upcoming = await response.json();
+            
+            this.renderUpcomingSubsidies(upcoming);
+        } catch (error) {
+            console.error('Error loading upcoming subsidies:', error);
+        }
+    }
+
+    renderCalendar() {
+        const container = document.getElementById('predictionCalendar');
+        container.innerHTML = '';
+
+        if (!this.calendarData) return;
+
+        for (const [monthKey, monthData] of Object.entries(this.calendarData)) {
+            const monthDiv = document.createElement('div');
+            monthDiv.className = 'month-section mb-4';
+            
+            monthDiv.innerHTML = `
+                <h6 class="border-bottom pb-2 mb-3">${monthData.month}</h6>
+                <div class="row" id="month-${monthKey}"></div>
+            `;
+            
+            container.appendChild(monthDiv);
+            
+            const monthContainer = document.getElementById(`month-${monthKey}`);
+            
+            // 確定データを表示
+            if (this.currentFilter === 'all' || this.currentFilter === 'confirmed') {
+                monthData.confirmed.forEach(item => {
+                    monthContainer.appendChild(this.createSubsidyCard(item, 'confirmed'));
+                });
+            }
+            
+            // 予測データを表示
+            if (this.currentFilter === 'all' || this.currentFilter === 'predicted') {
+                monthData.predicted.forEach(item => {
+                    monthContainer.appendChild(this.createSubsidyCard(item, 'predicted'));
+                });
+            }
+            
+            if (monthContainer.children.length === 0) {
+                monthContainer.innerHTML = '<div class="col-12"><p class="text-muted text-center">該当する公募がありません</p></div>';
+            }
+        }
+    }
+
+    createSubsidyCard(item, type) {
+        const col = document.createElement('div');
+        col.className = 'col-md-6 col-lg-4 mb-3';
+        
+        const badgeClass = type === 'confirmed' ? 'bg-success' : this.getConfidenceBadgeClass(item.confidence);
+        const confidenceText = type === 'confirmed' ? '確定' : `予測 ${item.confidence}%`;
+        
+        col.innerHTML = `
+            <div class="card h-100 subsidy-card" data-type="${type}" onclick="subsidyPrediction.showDetail(${item.subsidy_id}, '${type}')">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title small">${item.subsidy_name}</h6>
+                        <span class="badge ${badgeClass}">${confidenceText}</span>
+                    </div>
+                    <div class="text-muted small">
+                        <div><i class="fas fa-calendar"></i> ${this.formatDate(item.start_date)}</div>
+                        ${item.end_date ? `<div><i class="fas fa-calendar-times"></i> ${this.formatDate(item.end_date)}</div>` : ''}
+                        ${item.days_until !== null ? `<div><i class="fas fa-clock"></i> あと${item.days_until}日</div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        return col;
+    }
+
+    renderUpcomingSubsidies(subsidies) {
+        const container = document.getElementById('upcomingSubsidies');
+        container.innerHTML = '';
+
+        if (subsidies.length === 0) {
+            container.innerHTML = '<div class="p-3 text-muted text-center">今後30日間の公募はありません</div>';
+            return;
+        }
+
+        subsidies.slice(0, 10).forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'list-group-item list-group-item-action';
+            
+            const badgeClass = item.type === 'confirmed' ? 'bg-success' : this.getConfidenceBadgeClass(item.confidence);
+            const confidenceText = item.type === 'confirmed' ? '確定' : `${item.confidence}%`;
+            
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 small">${item.subsidy_name}</h6>
+                        <p class="mb-1 small text-muted">
+                            <i class="fas fa-calendar"></i> ${this.formatDate(item.date)}
+                            <span class="ms-2"><i class="fas fa-clock"></i> あと${item.days_until}日</span>
+                        </p>
+                    </div>
+                    <span class="badge ${badgeClass}">${confidenceText}</span>
+                </div>
+            `;
+            
+            div.addEventListener('click', () => {
+                this.showDetail(item.subsidy_id, item.type);
+            });
+            
+            container.appendChild(div);
+        });
+    }
+
+    async showDetail(subsidyId, type) {
+        try {
+            // 補助金の詳細情報を取得
+            const response = await fetch(`/api/subsidy-trend/${subsidyId}/`);
+            const data = await response.json();
+            
+            const modal = new bootstrap.Modal(document.getElementById('subsidyDetailModal'));
+            document.getElementById('modalTitle').textContent = data.subsidy.name;
+            
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>基本情報</h6>
+                        <table class="table table-sm">
+                            <tr><td>最大補助額</td><td>${data.subsidy.max_amount.toLocaleString()}円</td></tr>
+                            <tr><td>補助率</td><td>${data.subsidy.subsidy_rate}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>予測情報</h6>
+                        ${data.next_prediction ? `
+                            <table class="table table-sm">
+                                <tr><td>予測開始日</td><td>${this.formatDate(data.next_prediction.predicted_start_date)}</td></tr>
+                                <tr><td>信頼度</td><td>${data.next_prediction.confidence_score}%</td></tr>
+                                <tr><td>実施確率</td><td>${data.next_prediction.probability_percentage}%</td></tr>
+                            </table>
+                        ` : '<p class="text-muted">予測データがありません</p>'}
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h6>過去の実績パターン</h6>
+                    <p class="small text-muted">
+                        トレンド: ${data.patterns.trend}<br>
+                        最頻月: ${data.patterns.most_common_month}<br>
+                        年間平均回数: ${data.patterns.average_rounds_per_year.toFixed(1)}回
+                    </p>
+                </div>
+            `;
+            
+            modal.show();
+        } catch (error) {
+            console.error('Error loading subsidy detail:', error);
+        }
+    }
+
+    async generatePredictions() {
+        try {
+            const button = document.getElementById('generatePredictions');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+            button.disabled = true;
+
+            const response = await fetch('/api/generate-predictions/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                },
+                body: JSON.stringify({ year: this.currentYear })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(`${result.predictions_created}件の予測を生成しました`);
+                this.loadPredictionData();
+                this.loadSummaryData();
+            } else {
+                alert('予測生成中にエラーが発生しました');
+            }
+        } catch (error) {
+            console.error('Error generating predictions:', error);
+        } finally {
+            const button = document.getElementById('generatePredictions');
+            button.innerHTML = '<i class="fas fa-magic"></i> 予測を生成';
+            button.disabled = false;
+        }
+    }
+
+    getConfidenceBadgeClass(confidence) {
+        if (confidence >= 90) return 'bg-success';
+        if (confidence >= 70) return 'bg-primary';
+        if (confidence >= 50) return 'bg-warning';
+        return 'bg-secondary';
+    }
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+
+    getCSRFToken() {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        return cookieValue || '';
+    }
+}
+
+// ページ読み込み完了時に初期化
+document.addEventListener('DOMContentLoaded', () => {
+    window.subsidyPrediction = new SubsidyPredictionInterface();
+});
+</script>
+
+<style>
+.subsidy-card {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.subsidy-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.month-section {
+    border-left: 4px solid #007bff;
+    padding-left: 1rem;
+}
+
+.list-group-item {
+    transition: background-color 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}
