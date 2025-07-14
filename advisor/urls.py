@@ -2,6 +2,7 @@
 
 from django.urls import path
 from . import views
+from .api import enhanced_chat_api
 
 app_name = 'advisor'
 
@@ -41,4 +42,21 @@ urlpatterns = [
     path('api/test-adoption-data/', views.test_adoption_data, name='test_adoption_data'),
     path('api/create-sample-adoption-data/', views.create_sample_adoption_data, name='create_sample_adoption_data'),
     path('api/system-status/', views.system_status, name='system_status'),
+
+    path('', views.index, name='index'),
+    path('chat/', views.chat_interface, name='chat_interface'),
+    path('api/analyze/', views.analyze_question, name='analyze_question'),
+    
+    # 新機能: 強化されたチャット機能
+    path('enhanced-chat/', views.enhanced_chat_interface, name='enhanced_chat_interface'),
+    path('api/enhanced-chat/', enhanced_chat_api.enhanced_chat_conversation, name='enhanced_chat_api'),
+    
+    # 新機能: 補助金予測機能
+    path('predictions/', views.prediction_dashboard, name='prediction_dashboard'),
+    path('api/subsidy-predictions/', enhanced_chat_api.subsidy_predictions, name='subsidy_predictions_api'),
+    path('api/prediction-calendar/', enhanced_chat_api.prediction_calendar, name='prediction_calendar_api'),
+    
+    # 管理機能
+    path('alerts/', views.user_alerts, name='user_alerts'),
+    path('trends/', views.trend_analysis, name='trend_analysis'),
 ]

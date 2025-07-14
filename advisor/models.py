@@ -7,23 +7,44 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 import datetime
 
 class SubsidyType(models.Model):
-    """補助金の種類"""
-    name = models.CharField(max_length=200, verbose_name="補助金名")
-    description = models.TextField(verbose_name="概要")
-    target_business = models.TextField(verbose_name="対象事業")
-    application_period = models.CharField(max_length=100, verbose_name="申請期間")
-    max_amount = models.IntegerField(verbose_name="最大補助額")
-    subsidy_rate = models.CharField(max_length=50, verbose_name="補助率")
+    name = models.CharField(max_length=255, verbose_name="補助金名")
+    description = models.TextField(verbose_name="説明")
+    max_amount = models.IntegerField(verbose_name="最大金額（万円）")
+    target_business_type = models.CharField(max_length=255, verbose_name="対象事業種別")
     requirements = models.TextField(verbose_name="申請要件")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
+    
+    # 新機能: 予測関連フィールド
+    typical_application_months = models.JSONField(
+        default=list, 
+        verbose_name="通常の申請月",
+        help_text="例: [1, 4, 7, 10]"
+    )
+    average_preparation_weeks = models.IntegerField(
+        default=8, 
+        verbose_name="平均準備期間（週）"
+    )
+    historical_success_rate = models.FloatField(
+        default=0.25, 
+        verbose_name="過去の成功率"
+    )
+    application_difficulty = models.IntegerField(
+        default=3, 
+        verbose_name="申請難易度（1-5）",
+        choices=[(i, f"レベル{i}") for i in range(1, 6)]
+    )
+    
+    # メタデータ
+    is_active = models.BooleanField(default=True, verbose_name="アクティブ")
+    last_updated = models.DateTimeField(auto_now=True, verbose_name="最終更新")
+    
     class Meta:
         verbose_name = "補助金種別"
         verbose_name_plural = "補助金種別"
-
+    
     def __str__(self):
         return self.name
+
+
 
 class Question(models.Model):
     """ユーザーからの質問"""
@@ -58,17 +79,54 @@ class Answer(models.Model):
         return f"回答: {self.question.question_text[:30]}..."
 
 class ConversationHistory(models.Model):
-    """会話履歴"""
-    session_id = models.CharField(max_length=100)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-    message_type = models.CharField(max_length=10, choices=[('user', 'User'), ('ai', 'AI')])
-    content = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-
+    """強化された会話履歴管理"""
+    session_id = models.CharField(max_length=255, verbose_name="セッションID")
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        verbose_name="ユーザー"
+    )
+    message_type = models.CharField(
+        max_length=20, 
+        choices=[
+            ('user', 'ユーザー'),
+            ('assistant', 'アシスタント'),
+            ('system', 'システム')
+        ],
+        verbose_name="メッセージ種別"
+    )
+    content = models.TextField(verbose_name="メッセージ内容")
+    
+    # 新機能: メタデータ
+    metadata = models.JSONField(
+        default=dict, 
+        verbose_name="メタデータ",
+        help_text="信頼度、推奨補助金、使用モデル等"
+    )
+    
+    # 分析用フィールド
+    intent_analysis = models.JSONField(
+        default=dict, 
+        verbose_name="意図分析結果"
+    )
+    user_context = models.JSONField(
+        default=dict, 
+        verbose_name="ユーザーコンテキスト"
+    )
+    
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="タイムスタンプ")
+    
     class Meta:
-        ordering = ['timestamp']
         verbose_name = "会話履歴"
         verbose_name_plural = "会話履歴"
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        return f"{self.session_id} - {self.message_type} - {self.timestamp}"
+
+
 
 
 class AdoptionStatistics(models.Model):
@@ -310,84 +368,164 @@ class SubsidySchedule(models.Model):
         return 0
 
 class SubsidyPrediction(models.Model):
-    """補助金公募予測"""
-    subsidy_type = models.ForeignKey('SubsidyType', on_delete=models.CASCADE, related_name='predictions')
-    predicted_year = models.IntegerField(verbose_name="予測年度")
-    predicted_round = models.IntegerField(verbose_name="予測回次", default=1)
+    """補助金予測データ"""
+    subsidy_type = models.ForeignKey(
+        SubsidyType, 
+        on_delete=models.CASCADE, 
+        verbose_name="補助金種別"
+    )
+    predicted_date = models.DateField(verbose_name="予測公募日")
+    confidence_score = models.FloatField(
+        verbose_name="信頼度スコア",
+        help_text="0.0-1.0の範囲"
+    )
     
-    # 予測日程
-    predicted_start_date = models.DateField(verbose_name="予測開始日")
-    predicted_end_date = models.DateField(verbose_name="予測締切日")
-    predicted_announcement_date = models.DateField(verbose_name="予測発表日", null=True, blank=True)
+    # 予測の詳細
+    estimated_budget = models.IntegerField(
+        null=True, 
+        blank=True, 
+        verbose_name="予測予算（万円）"
+    )
+    preparation_deadline = models.DateField(verbose_name="準備期限")
+    success_probability = models.FloatField(
+        default=0.25, 
+        verbose_name="成功確率"
+    )
+    recommendation_priority = models.FloatField(
+        default=0.5, 
+        verbose_name="推奨優先度"
+    )
     
     # 予測根拠
-    PREDICTION_BASIS_CHOICES = [
-        ('historical', '過去実績'),
-        ('official_announcement', '公式発表'),
-        ('budget_cycle', '予算サイクル'),
-        ('policy_change', '政策変更'),
-        ('trend_analysis', 'トレンド分析'),
-    ]
-    prediction_basis = models.CharField(
-        max_length=30, 
-        choices=PREDICTION_BASIS_CHOICES, 
-        default='historical',
-        verbose_name="予測根拠"
+    prediction_basis = models.JSONField(
+        default=dict, 
+        verbose_name="予測根拠",
+        help_text="季節性、過去実績等の分析結果"
     )
     
-    # 信頼度と確率
-    confidence_score = models.IntegerField(
-        verbose_name="信頼度スコア", 
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        default=70
+    # システム管理
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="作成日時")
+    model_version = models.CharField(
+        max_length=50, 
+        default="v1.0", 
+        verbose_name="予測モデルバージョン"
     )
     
-    probability_percentage = models.FloatField(
-        verbose_name="実施確率", 
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        default=80.0
-    )
-    
-    # 予測詳細
-    prediction_notes = models.TextField(verbose_name="予測詳細", blank=True)
-    risk_factors = models.TextField(verbose_name="リスク要因", blank=True)
-    
-    # 参考データ
-    historical_data_years = models.IntegerField(verbose_name="参考年数", default=3)
-    last_year_date = models.DateField(verbose_name="昨年実施日", null=True, blank=True)
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
     class Meta:
         verbose_name = "補助金予測"
         verbose_name_plural = "補助金予測"
-        unique_together = ['subsidy_type', 'predicted_year', 'predicted_round']
-        ordering = ['predicted_start_date']
-
+        unique_together = ['subsidy_type', 'predicted_date']
+        ordering = ['predicted_date']
+    
     def __str__(self):
-        return f"{self.subsidy_type.name} {self.predicted_year}年度第{self.predicted_round}回 予測"
+        return f"{self.subsidy_type.name} - {self.predicted_date}"
+    
+class UserAlert(models.Model):
+    """ユーザーアラート管理"""
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        verbose_name="ユーザー"
+    )
+    alert_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('preparation_deadline', '準備期限'),
+            ('high_opportunity', '高確率案件'),
+            ('new_subsidy', '新規補助金'),
+            ('trend_change', 'トレンド変化')
+        ],
+        verbose_name="アラート種別"
+    )
+    
+    # アラート内容
+    title = models.CharField(max_length=255, verbose_name="タイトル")
+    message = models.TextField(verbose_name="メッセージ")
+    priority = models.CharField(
+        max_length=20,
+        choices=[
+            ('high', '高'),
+            ('medium', '中'),
+            ('low', '低')
+        ],
+        default='medium',
+        verbose_name="優先度"
+    )
+    
+    # 関連データ
+    related_subsidy = models.ForeignKey(
+        SubsidyType, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        verbose_name="関連補助金"
+    )
+    action_required = models.TextField(
+        null=True, 
+        blank=True, 
+        verbose_name="必要なアクション"
+    )
+    deadline = models.DateField(
+        null=True, 
+        blank=True, 
+        verbose_name="期限"
+    )
+    
+    # ステータス管理
+    is_read = models.BooleanField(default=False, verbose_name="既読")
+    is_dismissed = models.BooleanField(default=False, verbose_name="非表示")
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="作成日時")
+    read_at = models.DateTimeField(null=True, blank=True, verbose_name="既読日時")
+    
+    class Meta:
+        verbose_name = "ユーザーアラート"
+        verbose_name_plural = "ユーザーアラート"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"
 
-    @property
-    def confidence_level_display(self):
-        """信頼度の表示"""
-        if self.confidence_score >= 90:
-            return "非常に高い"
-        elif self.confidence_score >= 70:
-            return "高い"
-        elif self.confidence_score >= 50:
-            return "中程度"
-        else:
-            return "低い"
-
-    @property
-    def status_color(self):
-        """ステータス表示用の色"""
-        if self.confidence_score >= 80:
-            return "success"
-        elif self.confidence_score >= 60:
-            return "primary"
-        elif self.confidence_score >= 40:
-            return "warning"
-        else:
-            return "secondary"
+class TrendAnalysis(models.Model):
+    """トレンド分析データ"""
+    analysis_date = models.DateField(verbose_name="分析日")
+    
+    # 季節パターン
+    seasonal_patterns = models.JSONField(
+        default=dict, 
+        verbose_name="季節パターン"
+    )
+    
+    # 予算トレンド
+    budget_trends = models.JSONField(
+        default=dict, 
+        verbose_name="予算トレンド"
+    )
+    
+    # 競合分析
+    competition_analysis = models.JSONField(
+        default=dict, 
+        verbose_name="競合分析"
+    )
+    
+    # 成功率トレンド
+    success_rate_trends = models.JSONField(
+        default=dict, 
+        verbose_name="成功率トレンド"
+    )
+    
+    # 新機会の特定
+    emerging_opportunities = models.JSONField(
+        default=list, 
+        verbose_name="新たな機会"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="作成日時")
+    
+    class Meta:
+        verbose_name = "トレンド分析"
+        verbose_name_plural = "トレンド分析"
+        ordering = ['-analysis_date']
+    
+    def __str__(self):
+        return f"トレンド分析 - {self.analysis_date}"

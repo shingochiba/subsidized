@@ -1,0 +1,796 @@
+/* static/css/enhanced_features.css */
+
+/* ==============================================
+   強化されたチャット機能のスタイル
+   ============================================== */
+
+.chat-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.chat-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.chat-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.chat-status {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+#chat-messages {
+    height: 500px;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f8fafc;
+}
+
+.chat-message {
+    display: flex;
+    margin-bottom: 20px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.user-message {
+    justify-content: flex-end;
+}
+
+.assistant-message {
+    justify-content: flex-start;
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.user-avatar {
+    background: #4299e1;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.assistant-content {
+    background: white;
+    color: #2d3748;
+    border: 1px solid #e2e8f0;
+    border-bottom-left-radius: 4px;
+}
+
+.message-text {
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.message-text h3, .message-text h4 {
+    margin: 12px 0 8px 0;
+    color: inherit;
+}
+
+.message-text hr {
+    margin: 12px 0;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.assistant-content .message-text hr {
+    border-top-color: #e2e8f0;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.assistant-content .message-time {
+    text-align: left;
+}
+
+/* タイピングインジケーター */
+.typing-animation {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+}
+
+.typing-animation span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #94a3b8;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-animation span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-animation span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-10px);
+        opacity: 1;
+    }
+}
+
+/* 信頼度スコア */
+.confidence-score {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.confidence-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.confidence-bar {
+    flex: 1;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: #48bb78;
+    transition: width 0.3s ease;
+}
+
+.confidence-indicator.high .confidence-fill {
+    background: #38a169;
+}
+
+.confidence-indicator.medium .confidence-fill {
+    background: #ed8936;
+}
+
+.confidence-indicator.low .confidence-fill {
+    background: #e53e3e;
+}
+
+/* 推奨補助金 */
+.recommended-subsidies {
+    margin: 20px 0;
+    padding: 16px;
+    background: #f7fafc;
+    border-radius: 8px;
+    border-left: 4px solid #4299e1;
+}
+
+.recommendations-header {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 12px;
+    font-size: 1rem;
+}
+
+.subsidy-recommendation {
+    background: white;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.subsidy-recommendation h4 {
+    margin: 0 0 8px 0;
+    color: #2d3748;
+    font-size: 0.95rem;
+}
+
+.subsidy-recommendation p {
+    margin: 0 0 8px 0;
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.subsidy-details {
+    display: flex;
+    gap: 12px;
+    font-size: 0.8rem;
+}
+
+.subsidy-details span {
+    padding: 2px 8px;
+    background: #edf2f7;
+    border-radius: 12px;
+    color: #4a5568;
+}
+
+/* チャット入力エリア */
+.chat-input-area {
+    padding: 20px;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+#chat-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 24px;
+    resize: vertical;
+    min-height: 48px;
+    max-height: 120px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+}
+
+#chat-input:focus {
+    outline: none;
+    border-color: #4299e1;
+}
+
+#send-chat {
+    width: 48px;
+    height: 48px;
+    border: none;
+    background: #4299e1;
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 1.2rem;
+}
+
+#send-chat:hover {
+    background: #3182ce;
+    transform: scale(1.05);
+}
+
+#send-chat:disabled {
+    background: #a0aec0;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ==============================================
+   補助金予測カレンダーのスタイル
+   ============================================== */
+
+.prediction-calendar-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin: 20px 0;
+}
+
+.calendar-header {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 20px;
+}
+
+.calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.calendar-nav button {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background 0.2s ease;
+}
+
+.calendar-nav button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+#current-month {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.calendar-legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+.legend-item {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: #e2e8f0;
+    margin: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.calendar-day-header {
+    background: #4a5568;
+    color: white;
+    padding: 12px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.calendar-day {
+    background: white;
+    min-height: 80px;
+    padding: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.calendar-day:hover {
+    background: #f7fafc;
+}
+
+.calendar-day.other-month {
+    background: #f8fafc;
+    color: #a0aec0;
+}
+
+.calendar-day.today {
+    background: #ebf8ff;
+    border: 2px solid #4299e1;
+}
+
+.calendar-day.has-predictions {
+    background: #f0fff4;
+    border: 1px solid #68d391;
+}
+
+.calendar-day.has-predictions:hover {
+    background: #e6fffa;
+}
+
+.day-number {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.prediction-indicator {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 0.7rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+.prediction-indicator.high-priority {
+    animation-duration: 1s;
+}
+
+/* 月詳細サマリー */
+.month-summary {
+    padding: 20px;
+    background: #f7fafc;
+    border-top: 1px solid #e2e8f0;
+}
+
+.month-summary h4 {
+    margin: 0 0 16px 0;
+    color: #2d3748;
+    font-size: 1.1rem;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 12px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #4299e1;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+/* 予測モーダル */
+.prediction-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2d3748;
+}
+
+.modal-close {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #64748b;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: #f7fafc;
+    color: #2d3748;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.predictions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.prediction-item {
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f7fafc;
+}
+
+.prediction-item h4 {
+    margin: 0 0 12px 0;
+    color: #2d3748;
+    font-size: 1rem;
+}
+
+.prediction-stats {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.confidence, .success-rate {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.confidence.high {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.confidence.medium {
+    background: #fed7d7;
+    color: #742a2a;
+}
+
+.confidence.low {
+    background: #bee3f8;
+    color: #2a4365;
+}
+
+.success-rate {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.prediction-details p {
+    margin: 4px 0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+/* アラート表示 */
+.alerts-container {
+    margin: 20px 0;
+}
+
+.alerts-header h3 {
+    margin: 0 0 16px 0;
+    color: #2d3748;
+    font-size: 1.2rem;
+}
+
+.alert-item {
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    border-left: 4px solid;
+}
+
+.alert-item.high {
+    background: #fed7d7;
+    border-left-color: #e53e3e;
+}
+
+.alert-item.medium {
+    background: #feebc8;
+    border-left-color: #dd6b20;
+}
+
+.alert-item.low {
+    background: #e6fffa;
+    border-left-color: #38b2ac;
+}
+
+.alert-header {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 4px;
+}
+
+.alert-action {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+/* トレンド分析 */
+.trends-container {
+    margin: 20px 0;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.trends-header h3 {
+    margin: 0 0 16px 0;
+    color: #2d3748;
+}
+
+.trends-content {
+    display: grid;
+    gap: 16px;
+}
+
+.trend-section h4 {
+    margin: 0 0 8px 0;
+    color: #4a5568;
+    font-size: 0.95rem;
+}
+
+.trend-section p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.emerging-opportunities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.opportunity-tag {
+    padding: 4px 8px;
+    background: #e6fffa;
+    color: #234e52;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .chat-container {
+        margin: 10px;
+        border-radius: 8px;
+    }
+    
+    #chat-messages {
+        height: 400px;
+        padding: 15px;
+    }
+    
+    .message-content {
+        max-width: 85%;
+    }
+    
+    .calendar-grid {
+        margin: 10px;
+    }
+    
+    .calendar-day {
+        min-height: 60px;
+    }
+    
+    .summary-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .prediction-stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+    .chat-container,
+    .prediction-calendar-container,
+    .trends-container {
+        background: #1a202c;
+        color: #e2e8f0;
+    }
+    
+    .assistant-content {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .calendar-day {
+        background: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    .calendar-day.other-month {
+        background: #1a202c;
+        color: #4a5568;
+    }
+    
+    .modal-content {
+        background: #1a202c;
+        color: #e2e8f0;
+    }
+}
+"""
+    margin-left: 12px;
+}
+
+.assistant-avatar {
+    background: #48bb78;
+    color: white;
+    margin-right: 12px;
+}
+
+.message-content {
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 18px;
+    position: relative;
+}
+
+.user-content {
+    background: #4299e1;
+    color: white;
+}
