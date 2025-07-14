@@ -1,286 +1,356 @@
 # advisor/management/commands/load_adoption_data.py
 
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User
-from advisor.models import SubsidyType, AdoptionStatistics, AdoptionTips, UserApplicationHistory
-from datetime import date, timedelta
+from advisor.models import SubsidyType, AdoptionStatistics, AdoptionTips
 import random
+from datetime import datetime
 
 class Command(BaseCommand):
-    help = '採択率分析用のサンプルデータを投入します'
+    help = '採択統計データとティップスを投入します'
 
-    def handle(self, *args, **options):
-        self.stdout.write('採択率分析用サンプルデータの投入を開始します...\n')
-        
-        # 1. 採択統計データの投入
-        self.load_adoption_statistics()
-        
-        # 2. 採択ティップスの投入
-        self.load_adoption_tips()
-        
-        # 3. サンプル申請履歴の投入
-        self.load_sample_application_history()
-        
-        self.stdout.write(
-            self.style.SUCCESS('\n採択率分析用サンプルデータの投入が完了しました！')
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--reset',
+            action='store_true',
+            help='既存データを削除してから投入'
+        )
+        parser.add_argument(
+            '--years',
+            type=int,
+            default=3,
+            help='生成する年数（デフォルト: 3年）'
         )
 
-    def load_adoption_statistics(self):
-        """採択統計データを投入"""
-        self.stdout.write('📊 採択統計データを投入中...')
+    def handle(self, *args, **options):
+        if options['reset']:
+            AdoptionStatistics.objects.all().delete()
+            AdoptionTips.objects.all().delete()
+            self.stdout.write(
+                self.style.WARNING('既存の採択統計・ティップスデータを削除しました')
+            )
+
+        # 統計データの生成
+        self._create_adoption_statistics(options['years'])
         
+        # ティップスデータの生成
+        self._create_adoption_tips()
+
+        self.stdout.write('\n' + '='*60)
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'採択データの投入が完了しました！\n'
+                f'  📊 統計データ: {AdoptionStatistics.objects.count()}件\n'
+                f'  💡 ティップス: {AdoptionTips.objects.count()}件'
+            )
+        )
+        self.stdout.write('='*60)
+
+    def _create_adoption_statistics(self, years):
+        """採択統計データを生成"""
         subsidies = SubsidyType.objects.all()
-        years = [2022, 2023, 2024]
-        
+        current_year = datetime.now().year
         created_count = 0
-        
+
         for subsidy in subsidies:
-            for year in years:
-                # 年に1-3回の公募があると仮定
-                rounds = random.randint(1, 3)
+            # 補助金の特性に応じたベース採択率を設定
+            if 'IT導入' in subsidy.name:
+                base_rate = 65.0
+                variance = 10.0
+            elif 'ものづくり' in subsidy.name:
+                base_rate = 55.0
+                variance = 8.0
+            elif '持続化' in subsidy.name:
+                base_rate = 70.0
+                variance = 12.0
+            elif '事業再構築' in subsidy.name:
+                base_rate = 45.0
+                variance = 15.0
+            elif '創業' in subsidy.name:
+                base_rate = 60.0
+                variance = 20.0
+            else:
+                base_rate = 50.0
+                variance = 15.0
+
+            for year in range(current_year - years, current_year + 1):
+                rounds = 2 if '持続化' in subsidy.name or 'IT導入' in subsidy.name else 1
                 
                 for round_num in range(1, rounds + 1):
-                    # リアルなデータを模擬
-                    if 'IT導入' in subsidy.name:
-                        total_apps = random.randint(8000, 12000)
-                        adoption_rate = random.uniform(50, 70)
+                    # 既存データをスキップ
+                    if AdoptionStatistics.objects.filter(
+                        subsidy_type=subsidy, 
+                        year=year, 
+                        round_number=round_num
+                    ).exists():
+                        continue
+
+                    # 年ごとのトレンドを追加
+                    trend_adjustment = (year - (current_year - years)) * random.uniform(-2, 3)
+                    adoption_rate = max(15.0, min(85.0, base_rate + trend_adjustment + random.uniform(-variance, variance)))
+
+                    # 申請数の生成
+                    if 'ものづくり' in subsidy.name:
+                        total_apps = random.randint(8000, 15000)
+                    elif 'IT導入' in subsidy.name:
+                        total_apps = random.randint(15000, 30000)
                     elif '事業再構築' in subsidy.name:
-                        total_apps = random.randint(15000, 25000)
-                        adoption_rate = random.uniform(25, 45)
-                    elif 'ものづくり' in subsidy.name:
-                        total_apps = random.randint(6000, 10000)
-                        adoption_rate = random.uniform(40, 60)
+                        total_apps = random.randint(10000, 20000)
                     elif '持続化' in subsidy.name:
-                        total_apps = random.randint(20000, 35000)
-                        adoption_rate = random.uniform(55, 75)
+                        total_apps = random.randint(6000, 12000)
                     else:
-                        total_apps = random.randint(3000, 8000)
-                        adoption_rate = random.uniform(30, 50)
-                    
+                        total_apps = random.randint(500, 3000)
+
                     total_adoptions = int(total_apps * adoption_rate / 100)
-                    
+
                     # 企業規模別データ
-                    small_apps = int(total_apps * 0.4)
-                    small_adoptions = int(small_apps * (adoption_rate + random.uniform(-5, 10)) / 100)
-                    medium_apps = int(total_apps * 0.6)
+                    small_ratio = 0.7
+                    small_apps = int(total_apps * small_ratio)
+                    small_adoption_rate = adoption_rate + random.uniform(-3, 8)
+                    small_adoptions = int(small_apps * small_adoption_rate / 100)
+
+                    medium_apps = total_apps - small_apps
                     medium_adoptions = total_adoptions - small_adoptions
-                    
-                    # 業種別統計（サンプル）
-                    industry_stats = {
-                        '製造業': {'applications': int(total_apps * 0.3), 'adoptions': int(total_adoptions * 0.35), 'adoption_rate': random.uniform(35, 65)},
-                        'IT・情報通信業': {'applications': int(total_apps * 0.2), 'adoptions': int(total_adoptions * 0.25), 'adoption_rate': random.uniform(45, 75)},
-                        'サービス業': {'applications': int(total_apps * 0.25), 'adoptions': int(total_adoptions * 0.2), 'adoption_rate': random.uniform(25, 55)},
-                        '建設業': {'applications': int(total_apps * 0.15), 'adoptions': int(total_adoptions * 0.12), 'adoption_rate': random.uniform(20, 50)},
-                        '小売業': {'applications': int(total_apps * 0.1), 'adoptions': int(total_adoptions * 0.08), 'adoption_rate': random.uniform(30, 60)}
-                    }
-                    
-                    stat, created = AdoptionStatistics.objects.get_or_create(
+                    medium_adoption_rate = (medium_adoptions / medium_apps * 100) if medium_apps > 0 else 0
+
+                    # 業種別統計
+                    industry_stats = self._generate_industry_statistics(subsidy, adoption_rate, total_apps, total_adoptions)
+
+                    # 統計データ作成
+                    stat = AdoptionStatistics.objects.create(
                         subsidy_type=subsidy,
                         year=year,
                         round_number=round_num,
-                        defaults={
-                            'total_applications': total_apps,
-                            'total_adoptions': total_adoptions,
-                            'adoption_rate': adoption_rate,
-                            'small_business_applications': small_apps,
-                            'small_business_adoptions': small_adoptions,
-                            'medium_business_applications': medium_apps,
-                            'medium_business_adoptions': medium_adoptions,
-                            'industry_statistics': industry_stats
-                        }
+                        total_applications=total_apps,
+                        total_adoptions=total_adoptions,
+                        adoption_rate=round(adoption_rate, 1),
+                        small_business_applications=small_apps,
+                        small_business_adoptions=small_adoptions,
+                        medium_business_applications=medium_apps,
+                        medium_business_adoptions=medium_adoptions,
+                        industry_statistics=industry_stats
                     )
-                    
-                    if created:
-                        created_count += 1
-        
-        self.stdout.write(f'  ✓ 採択統計データ {created_count}件を作成')
+                    created_count += 1
 
-    def load_adoption_tips(self):
-        """採択ティップスを投入"""
-        self.stdout.write('💡 採択ティップスを投入中...')
-        
-        tips_data = [
-            # IT導入補助金
+                    self.stdout.write(
+                        self.style.SUCCESS(f'✅ 統計作成: {subsidy.name} {year}年 第{round_num}回 (採択率: {adoption_rate:.1f}%, 小規模: {stat.small_business_adoption_rate:.1f}%)')
+                    )
+
+    def _generate_industry_statistics(self, subsidy, base_rate, total_apps, total_adoptions):
+        """業種別統計を生成"""
+        industries = {
+            '製造業': 0.25,
+            'IT・情報通信業': 0.20,
+            'サービス業': 0.20,
+            '小売業': 0.15,
+            '建設業': 0.10,
+            'その他': 0.10
+        }
+
+        # 補助金の特性に応じて業種別の補正
+        if 'IT導入' in subsidy.name:
+            industries['IT・情報通信業'] = 0.35
+            industries['製造業'] = 0.20
+            industries['サービス業'] = 0.25
+        elif 'ものづくり' in subsidy.name:
+            industries['製造業'] = 0.50
+            industries['IT・情報通信業'] = 0.15
+
+        industry_stats = {}
+        remaining_apps = total_apps
+        remaining_adoptions = total_adoptions
+
+        for industry, ratio in industries.items():
+            if industry == 'その他':  # 最後の業種は残り全部
+                apps = remaining_apps
+                adoptions = remaining_adoptions
+            else:
+                apps = int(total_apps * ratio)
+                
+                # 業種別の採択率補正
+                if industry == 'IT・情報通信業' and 'IT導入' in subsidy.name:
+                    industry_rate = base_rate + random.uniform(5, 15)
+                elif industry == '製造業' and 'ものづくり' in subsidy.name:
+                    industry_rate = base_rate + random.uniform(8, 20)
+                elif industry == 'サービス業':
+                    industry_rate = base_rate + random.uniform(-5, 5)
+                else:
+                    industry_rate = base_rate + random.uniform(-8, 8)
+                
+                industry_rate = max(15.0, min(85.0, industry_rate))
+                adoptions = int(apps * industry_rate / 100)
+                
+                remaining_apps -= apps
+                remaining_adoptions -= adoptions
+
+            adoption_rate = (adoptions / apps * 100) if apps > 0 else 0
+
+            industry_stats[industry] = {
+                'applications': apps,
+                'adoptions': adoptions,
+                'adoption_rate': round(adoption_rate, 1)
+            }
+
+        return industry_stats
+
+    def _create_adoption_tips(self):
+        """採択ティップスを生成"""
+        subsidies = SubsidyType.objects.all()
+
+        # 共通ティップス
+        common_tips = [
             {
-                'subsidy_name': 'IT導入補助金2025',
-                'tips': [
-                    {'category': 'preparation', 'title': 'ITツールの事前選定', 'content': 'IT導入支援事業者と連携し、自社に最適なITツールを事前に選定しておくことが重要です。', 'importance': 4},
-                    {'category': 'application', 'title': '生産性向上の具体的数値化', 'content': 'IT導入により期待される生産性向上効果を具体的な数値で示し、ROIを明確にすることで採択率が向上します。', 'importance': 4},
-                    {'category': 'documents', 'title': 'SECURITY ACTION実施証明', 'content': '情報セキュリティ対策の実施を証明するSECURITY ACTIONの宣言は必須要件です。', 'importance': 4},
-                    {'category': 'strategy', 'title': 'IT導入支援事業者との連携', 'content': '認定されたIT導入支援事業者との密な連携により、申請書の質が大幅に向上します。', 'importance': 3},
-                    {'category': 'common_mistakes', 'title': 'gBizIDの取得遅れ', 'content': 'gBizIDプライムアカウントの取得には時間がかかるため、早めの準備が必要です。', 'importance': 3},
-                    {'category': 'success_factors', 'title': '業務プロセス改善の明確化', 'content': 'IT導入により具体的にどの業務プロセスがどのように改善されるかを明確に示すことが重要です。', 'importance': 3}
-                ]
+                'category': '事前準備',
+                'title': '申請要件の徹底確認',
+                'content': '申請前に必ず最新の公募要領を熟読し、すべての要件を満たしているか確認しましょう。特に対象経費や期間については見落としがちです。',
+                'importance': 5,
+                'effective_timing': '申請検討時',
+                'is_success_case': True
             },
-            # 事業再構築補助金
             {
-                'subsidy_name': '事業再構築補助金',
-                'tips': [
-                    {'category': 'preparation', 'title': '認定経営革新等支援機関との連携', 'content': '事業計画策定において認定経営革新等支援機関との連携は必須です。早期に相談先を確保しましょう。', 'importance': 4},
-                    {'category': 'application', 'title': '売上減少要件の適切な証明', 'content': 'コロナ禍による売上減少を適切な書類で証明し、要件を満たしていることを明確に示してください。', 'importance': 4},
-                    {'category': 'strategy', 'title': '事業再構築指針への適合', 'content': '新分野展開、事業転換、業種転換、業態転換、事業再編のいずれかに該当することを明確に示してください。', 'importance': 4},
-                    {'category': 'documents', 'title': '詳細な事業計画書作成', 'content': '5年間の事業計画を詳細に作成し、実現可能性と収益性を具体的に示すことが重要です。', 'importance': 3},
-                    {'category': 'common_mistakes', 'title': '既存事業との差別化不足', 'content': '既存事業との違いを明確にし、なぜ新しい事業が必要なのかを説得力を持って説明してください。', 'importance': 3},
-                    {'category': 'success_factors', 'title': '地域経済への貢献', 'content': '地域経済や雇用創出への貢献を具体的に示すことで評価が高まります。', 'importance': 2}
-                ]
+                'category': '事前準備',
+                'title': 'gBizIDプライムの早期取得',
+                'content': 'gBizIDプライムの取得には時間がかかります。申請予定が決まったら、まずgBizIDプライムを取得しましょう。',
+                'importance': 4,
+                'effective_timing': '申請検討時',
+                'is_success_case': True
             },
-            # ものづくり補助金
             {
-                'subsidy_name': 'ものづくり補助金',
-                'tips': [
-                    {'category': 'preparation', 'title': '革新的な設備投資計画', 'content': '従来の設備とは異なる革新的な設備投資により、生産性向上を図る計画を策定してください。', 'importance': 4},
-                    {'category': 'application', 'title': '付加価値額向上の具体的計画', 'content': '3～5年で付加価値額を年率平均3%以上向上させる具体的な計画を示してください。', 'importance': 4},
-                    {'category': 'strategy', 'title': '技術的優位性の明確化', 'content': '導入する技術や設備の技術的優位性と競合他社との差別化を明確に示してください。', 'importance': 3},
-                    {'category': 'documents', 'title': '詳細な見積書の取得', 'content': '設備投資に関する詳細で適正な見積書を複数社から取得し、比較検討結果を示してください。', 'importance': 3},
-                    {'category': 'common_mistakes', 'title': '単純な設備更新', 'content': '単純な設備の更新や維持修繕は対象外です。革新性や生産性向上効果を明確に示してください。', 'importance': 3},
-                    {'category': 'success_factors', 'title': '給与支給総額の向上計画', 'content': '従業員の給与支給総額を年率平均1.5%以上向上させる計画を具体的に示してください。', 'importance': 2}
-                ]
+                'category': '申請書作成',
+                'title': '具体的な数値目標の設定',
+                'content': '売上向上や生産性向上について、具体的で根拠のある数値目標を設定してください。「少し」「多少」などの曖昧な表現は避けましょう。',
+                'importance': 5,
+                'effective_timing': '申請書作成時',
+                'is_success_case': True
             },
-            # 小規模事業者持続化補助金
             {
-                'subsidy_name': '小規模事業者持続化補助金',
-                'tips': [
-                    {'category': 'preparation', 'title': '商工会・商工会議所との連携', 'content': '商工会・商工会議所の支援を受けて経営計画書を策定することで、申請の質が向上します。', 'importance': 4},
-                    {'category': 'application', 'title': '販路開拓の具体的戦略', 'content': '新規顧客獲得や売上拡大につながる具体的な販路開拓戦略を明確に示してください。', 'importance': 4},
-                    {'category': 'strategy', 'title': '地域密着型の取り組み', 'content': '地域の特色を活かした取り組みや地域経済への貢献を具体的に示すことが重要です。', 'importance': 3},
-                    {'category': 'documents', 'title': '効果的な広告宣伝計画', 'content': 'ホームページ作成、チラシ作成、展示会出展など、効果的な広告宣伝計画を策定してください。', 'importance': 3},
-                    {'category': 'common_mistakes', 'title': '単発的な取り組み', 'content': '一時的な販促活動ではなく、継続的な事業発展につながる取り組みを計画してください。', 'importance': 2},
-                    {'category': 'success_factors', 'title': '既存事業との相乗効果', 'content': '新しい取り組みが既存事業とどのような相乗効果を生むかを具体的に示してください。', 'importance': 2}
-                ]
+                'category': '申請書作成',
+                'title': '現状の課題を明確化',
+                'content': '現在の事業における具体的な課題を明確に記載し、補助事業によってどのように解決するかを論理的に説明しましょう。',
+                'importance': 4,
+                'effective_timing': '申請書作成時',
+                'is_success_case': True
             },
-            # 事業承継・引継ぎ補助金
             {
-                'subsidy_name': '事業承継・引継ぎ補助金',
-                'tips': [
-                    {'category': 'preparation', 'title': '事業承継計画の策定', 'content': '中長期的な事業承継計画を策定し、承継後の事業発展戦略を明確にしてください。', 'importance': 4},
-                    {'category': 'application', 'title': '承継者の経営能力証明', 'content': '承継者の経営能力や事業への理解度を具体的な実績や計画で証明してください。', 'importance': 4},
-                    {'category': 'strategy', 'title': '既存事業の発展・改善', 'content': '事業承継を機に既存事業をどのように発展・改善させるかを具体的に示してください。', 'importance': 3},
-                    {'category': 'documents', 'title': '財務状況の適切な開示', 'content': '承継する事業の財務状況を適切に開示し、健全性や将来性を示してください。', 'importance': 3},
-                    {'category': 'common_mistakes', 'title': '承継のみで新規性なし', 'content': '単純な事業承継ではなく、承継を機とした新たな取り組みや改善を明確に示してください。', 'importance': 3},
-                    {'category': 'success_factors', 'title': '地域での事業継続価値', 'content': '地域における事業継続の重要性や地域経済への貢献を具体的に示してください。', 'importance': 2}
-                ]
+                'category': '申請書作成',
+                'title': '審査項目に沿った記載',
+                'content': '公募要領の審査項目を確認し、それぞれの項目について漏れなく記載してください。審査員が評価しやすいよう構成を工夫しましょう。',
+                'importance': 5,
+                'effective_timing': '申請書作成時',
+                'is_success_case': True
+            },
+            {
+                'category': '提出準備',
+                'title': '必要書類の完全性確認',
+                'content': '提出前に必要書類がすべて揃っているか、記載漏れがないかチェックリストを作成して確認しましょう。',
+                'importance': 4,
+                'effective_timing': '提出前',
+                'is_success_case': True
+            },
+            {
+                'category': '提出準備',
+                'title': '期限に余裕を持った提出',
+                'content': 'システム障害や書類不備に備え、締切の2-3日前には提出を完了しましょう。最終日の駆け込み提出は避けてください。',
+                'importance': 3,
+                'effective_timing': '提出前',
+                'is_success_case': True
             }
         ]
-        
-        created_count = 0
-        
-        for subsidy_data in tips_data:
-            try:
-                subsidy = SubsidyType.objects.get(name=subsidy_data['subsidy_name'])
-                
-                for tip_data in subsidy_data['tips']:
-                    tip, created = AdoptionTips.objects.get_or_create(
-                        subsidy_type=subsidy,
-                        title=tip_data['title'],
-                        defaults={
-                            'category': tip_data['category'],
-                            'content': tip_data['content'],
-                            'importance': tip_data['importance']
-                        }
-                    )
-                    
-                    if created:
-                        created_count += 1
-            
-            except SubsidyType.DoesNotExist:
-                self.stdout.write(f'  ⚠️ 補助金が見つかりません: {subsidy_data["subsidy_name"]}')
-        
-        self.stdout.write(f'  ✓ 採択ティップス {created_count}件を作成')
 
-    def load_sample_application_history(self):
-        """サンプル申請履歴を投入"""
-        self.stdout.write('📋 サンプル申請履歴を投入中...')
-        
-        # サンプルユーザーを作成（存在しない場合）
-        sample_users = [
-            {'username': 'sample_user1', 'email': 'user1@example.com', 'first_name': '太郎', 'last_name': '田中'},
-            {'username': 'sample_user2', 'email': 'user2@example.com', 'first_name': '花子', 'last_name': '佐藤'},
-            {'username': 'sample_user3', 'email': 'user3@example.com', 'first_name': '次郎', 'last_name': '鈴木'},
-        ]
-        
-        users = []
-        for user_data in sample_users:
-            user, created = User.objects.get_or_create(
-                username=user_data['username'],
-                defaults={
-                    'email': user_data['email'],
-                    'first_name': user_data['first_name'],
-                    'last_name': user_data['last_name']
+        # 補助金別の特別ティップス
+        special_tips = {
+            'IT導入補助金': [
+                {
+                    'category': 'IT導入補助金特有',
+                    'title': 'SECURITY ACTIONの実施',
+                    'content': 'SECURITY ACTIONの★一つ星または★★二つ星の実施が必要です。申請前に必ず完了させてください。',
+                    'importance': 5,
+                    'effective_timing': '申請前',
+                    'is_success_case': True
+                },
+                {
+                    'category': 'IT導入補助金特有',
+                    'title': 'ITツール選定の適切性',
+                    'content': '導入予定のITツールが事前登録されているか確認し、自社の課題解決に最適なツールを選定しましょう。',
+                    'importance': 4,
+                    'effective_timing': '申請書作成時',
+                    'is_success_case': True
                 }
-            )
-            users.append(user)
-        
-        subsidies = SubsidyType.objects.all()
-        business_types = ['製造業', 'IT・情報通信業', 'サービス業', '建設業', '小売業']
-        company_sizes = ['小規模事業者', '中小企業', '中堅企業']
-        statuses = ['preparing', 'submitted', 'under_review', 'adopted', 'rejected']
-        
-        created_count = 0
-        
-        for user in users:
-            # 各ユーザーに2-5件の申請履歴を作成
-            num_applications = random.randint(2, 5)
-            
-            for _ in range(num_applications):
-                subsidy = random.choice(subsidies)
-                status = random.choice(statuses)
-                
-                # 申請日は過去1-3年
-                days_ago = random.randint(30, 1095)
-                app_date = date.today() - timedelta(days=days_ago)
-                
-                # 結果発表日（採択・不採択の場合）
-                result_date = None
-                if status in ['adopted', 'rejected']:
-                    result_date = app_date + timedelta(days=random.randint(60, 120))
-                
-                # 申請金額
-                max_amount = subsidy.max_amount
-                requested_amount = random.randint(int(max_amount * 0.3), int(max_amount * 0.8))
-                
-                history, created = UserApplicationHistory.objects.get_or_create(
-                    user=user,
-                    subsidy_type=subsidy,
-                    application_date=app_date,
-                    defaults={
-                        'application_round': random.randint(1, 3),
-                        'status': status,
-                        'result_date': result_date,
-                        'business_type_at_application': random.choice(business_types),
-                        'company_size_at_application': random.choice(company_sizes),
-                        'requested_amount': requested_amount,
-                        'feedback': self.generate_sample_feedback(status)
-                    }
-                )
-                
-                if created:
-                    created_count += 1
-        
-        self.stdout.write(f'  ✓ サンプル申請履歴 {created_count}件を作成')
-
-    def generate_sample_feedback(self, status):
-        """ステータスに応じたサンプルフィードバックを生成"""
-        feedback_templates = {
-            'adopted': [
-                '事業計画が具体的で実現可能性が高く評価されました。',
-                '革新性と市場性が十分に示されており、採択となりました。',
-                '地域経済への貢献が期待でき、優秀な提案として採択されました。'
             ],
-            'rejected': [
-                '事業計画の具体性が不足しており、実現可能性に疑問が残りました。',
-                '市場分析が不十分で、事業の優位性が明確ではありませんでした。',
-                '財務計画に問題があり、事業継続性に懸念が見られました。'
+            'ものづくり補助金': [
+                {
+                    'category': 'ものづくり補助金特有',
+                    'title': '革新性の明確な説明',
+                    'content': '従来の手法との違いを明確に示し、なぜその設備・技術が革新的なのかを具体的に説明してください。',
+                    'importance': 5,
+                    'effective_timing': '申請書作成時',
+                    'is_success_case': True
+                },
+                {
+                    'category': 'ものづくり補助金特有',
+                    'title': '付加価値額向上の根拠',
+                    'content': '3年間で付加価値額年平均成長率3%以上の向上について、具体的な根拠と計算過程を示しましょう。',
+                    'importance': 4,
+                    'effective_timing': '申請書作成時',
+                    'is_success_case': True
+                }
             ],
-            'under_review': [
-                '現在審査中です。結果は後日お知らせいたします。'
-            ],
-            'submitted': [
-                '申請書類を受理いたしました。審査開始までお待ちください。'
-            ],
-            'preparing': [
-                '申請準備中です。'
+            '小規模事業者持続化補助金': [
+                {
+                    'category': '持続化補助金特有',
+                    'title': '経営計画書の質向上',
+                    'content': '商工会・商工会議所と密に連携し、経営計画書の内容を充実させてください。第三者の視点での確認が重要です。',
+                    'importance': 4,
+                    'effective_timing': '申請書作成時',
+                    'is_success_case': True
+                },
+                {
+                    'category': '持続化補助金特有',
+                    'title': '販路開拓の具体性',
+                    'content': '「新規顧客獲得」ではなく、「どのような顧客に、どのような方法で、いつまでに」という具体的な販路開拓計画を記載しましょう。',
+                    'importance': 5,
+                    'effective_timing': '申請書作成時',
+                    'is_success_case': True
+                }
             ]
         }
-        
-        templates = feedback_templates.get(status, [''])
-        return random.choice(templates) if templates else ''
+
+        created_count = 0
+
+        for subsidy in subsidies:
+            # 共通ティップスを追加
+            for tip_data in common_tips:
+                tip, created = AdoptionTips.objects.get_or_create(
+                    subsidy_type=subsidy,
+                    category=tip_data['category'],
+                    title=tip_data['title'],
+                    defaults={
+                        'content': tip_data['content'],
+                        'importance': tip_data['importance'],
+                        'effective_timing': tip_data['effective_timing'],
+                        'is_success_case': tip_data['is_success_case']
+                    }
+                )
+                if created:
+                    created_count += 1
+
+            # 補助金固有のティップスを追加
+            for keyword, tips in special_tips.items():
+                if keyword in subsidy.name:
+                    for tip_data in tips:
+                        tip, created = AdoptionTips.objects.get_or_create(
+                            subsidy_type=subsidy,
+                            category=tip_data['category'],
+                            title=tip_data['title'],
+                            defaults={
+                                'content': tip_data['content'],
+                                'importance': tip_data['importance'],
+                                'effective_timing': tip_data['effective_timing'],
+                                'is_success_case': tip_data['is_success_case']
+                            }
+                        )
+                        if created:
+                            created_count += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(f'✅ ティップス作成: {created_count}件')
+        )
