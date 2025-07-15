@@ -212,7 +212,7 @@ class DifyAIAdvisorService:
         for subsidy in subsidies:
             context_parts.append(f"""
 【{subsidy.name}】
-- 対象: {subsidy.target_business}
+- 対象: {subsidy.target_business_type_type}
 - 最大額: {subsidy.max_amount:,}円
 - 補助率: {subsidy.subsidy_rate}
 - 期間: {subsidy.application_period}

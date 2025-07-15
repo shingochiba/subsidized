@@ -408,7 +408,7 @@ class NLPAIAdvisorService:
 {subsidy.description}
 
 ### 👥 対象事業者
-{subsidy.target_business}
+{subsidy.target_business_type_type}
 
 ### 💰 補助金額・補助率
 - **最大補助額**: {subsidy.max_amount:,}円

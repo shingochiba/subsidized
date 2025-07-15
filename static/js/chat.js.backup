@@ -1,0 +1,375 @@
+// static/js/chat.js - 正しいID対応版
+// テンプレートのIDに合わせて修正
+
+console.log('チャット機能を初期化中...');
+
+// グローバル変数
+let chatSessionId = 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+let messageHistory = [];
+
+// メイン初期化関数
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM読み込み完了');
+    initializeChat();
+});
+
+function initializeChat() {
+    console.log('チャット初期化開始');
+    
+    // テンプレートの実際のIDに合わせて修正
+    const chatContainer = document.getElementById('chatContainer');
+    const questionInput = document.getElementById('questionInput');
+    const sendButton = document.getElementById('sendButton');
+    const questionForm = document.getElementById('questionForm');
+    
+    // 要素の存在確認
+    if (!chatContainer) {
+        console.error('chatContainer が見つかりません');
+        return;
+    }
+    if (!questionInput) {
+        console.error('questionInput が見つかりません');
+        return;
+    }
+    if (!sendButton) {
+        console.error('sendButton が見つかりません');
+        return;
+    }
+    if (!questionForm) {
+        console.error('questionForm が見つかりません');
+        return;
+    }
+    
+    console.log('全ての要素が見つかりました');
+    
+    // フォーム送信イベントを設定
+    questionForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        console.log('フォーム送信イベント発生');
+        sendMessage();
+    });
+    
+    // 送信ボタンクリック（念のため）
+    sendButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log('送信ボタンがクリックされました');
+        sendMessage();
+    });
+    
+    // Enterキー送信
+    questionInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            console.log('Enterキーが押されました');
+            sendMessage();
+        }
+    });
+    
+    // クイック質問ボタンの設定
+    const quickButtons = document.querySelectorAll('.quick-question');
+    quickButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const question = this.getAttribute('data-question');
+            console.log('クイック質問:', question);
+            if (question) {
+                questionInput.value = question;
+                sendMessage();
+            }
+        });
+    });
+    
+    console.log('チャット初期化完了');
+}
+
+function sendMessage() {
+    console.log('sendMessage開始');
+    
+    const questionInput = document.getElementById('questionInput');
+    const sendButton = document.getElementById('sendButton');
+    
+    const message = questionInput.value.trim();
+    if (!message) {
+        console.log('メッセージが空です');
+        return;
+    }
+    
+    console.log('送信するメッセージ:', message);
+    
+    // ユーザーメッセージを表示
+    addMessage('user', message);
+    
+    // 入力フィールドをクリア
+    questionInput.value = '';
+    
+    // 送信ボタンを無効化
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 処理中...';
+    
+    // タイピングインジケーターを表示
+    showTypingIndicator();
+    
+    // APIリクエストを送信
+    sendAPIRequest(message);
+}
+
+function sendAPIRequest(message) {
+    console.log('API リクエスト開始');
+    
+    // ユーザーコンテキストを取得
+    const businessType = document.getElementById('businessType')?.value || '';
+    const companySize = document.getElementById('companySize')?.value || '';
+    
+    console.log('事業種別:', businessType);
+    console.log('企業規模:', companySize);
+    
+    // CSRFトークンを取得
+    const csrfToken = getCSRFToken();
+    console.log('CSRFトークン:', csrfToken ? '取得済み' : '未取得');
+    
+    // リクエストデータ
+    const requestData = {
+        question: message,
+        session_id: chatSessionId,
+        business_type: businessType,
+        company_size: companySize
+    };
+    
+    console.log('リクエストデータ:', requestData);
+    
+    // Fetch APIでリクエスト送信
+    fetch('/api/question/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        console.log('レスポンス受信:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('レスポンスデータ:', data);
+        
+        hideTypingIndicator();
+        resetSendButton();
+        
+        if (data.success) {
+            // 成功時の処理
+            addMessage('assistant', data.answer || 'システムエラーが発生しました。');
+            
+            // 推奨補助金があれば表示
+            if (data.recommended_subsidies && data.recommended_subsidies.length > 0) {
+                showRecommendedSubsidies(data.recommended_subsidies);
+            }
+        } else {
+            // エラー時の処理
+            console.error('API エラー:', data.error);
+            addMessage('assistant', `申し訳ございません。エラーが発生しました：${data.error || 'システムエラー'}`);
+        }
+    })
+    .catch(error => {
+        console.error('リクエストエラー:', error);
+        
+        hideTypingIndicator();
+        resetSendButton();
+        addMessage('assistant', `接続エラーが発生しました: ${error.message}`);
+    });
+}
+
+function addMessage(sender, content) {
+    console.log('メッセージ追加:', sender, content?.substring(0, 50) + '...');
+    
+    const chatContainer = document.getElementById('chatContainer');
+    if (!chatContainer) {
+        console.error('chatContainer が見つかりません');
+        return;
+    }
+    
+    // ウェルカムメッセージを削除
+    const welcomeMessage = chatContainer.querySelector('.welcome-message');
+    if (welcomeMessage) {
+        welcomeMessage.remove();
+    }
+    
+    // 安全な内容変換
+    const safeContent = formatMessageContent(content);
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender === 'user' ? 'user' : 'assistant'}-message`;
+    
+    const timeStamp = new Date().toLocaleTimeString('ja-JP', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    if (sender === 'user') {
+        messageDiv.innerHTML = `
+            <div class="message-content bg-primary text-white rounded p-3 mb-2 ms-auto" style="max-width: 70%;">
+                <div>${safeContent}</div>
+                <small class="d-block mt-1 opacity-75">${timeStamp}</small>
+            </div>
+        `;
+    } else {
+        messageDiv.innerHTML = `
+            <div class="message-content bg-light rounded p-3 mb-2" style="max-width: 80%;">
+                <div>${safeContent}</div>
+                <small class="d-block mt-1 text-muted">${timeStamp}</small>
+            </div>
+        `;
+    }
+    
+    chatContainer.appendChild(messageDiv);
+    scrollToBottom();
+    
+    // 履歴に追加
+    messageHistory.push({
+        sender: sender,
+        content: content,
+        timestamp: new Date().toISOString()
+    });
+}
+
+function formatMessageContent(content) {
+    // null/undefined チェック
+    if (content === null || content === undefined) {
+        console.warn('コンテンツがnull/undefinedです');
+        return '';
+    }
+    
+    // 文字列に変換
+    let str = String(content);
+    
+    // 基本的なマークダウン処理
+    try {
+        str = str
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **太字**
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')              // *斜体*
+            .replace(/^## (.*$)/gm, '<h5 class="fw-bold text-primary mt-3 mb-2">$1</h5>')  // ## 見出し
+            .replace(/^### (.*$)/gm, '<h6 class="fw-bold mt-2 mb-1">$1</h6>')              // ### 小見出し
+            .replace(/^\*\*(.*$)/gm, '<h6 class="fw-bold mt-2 mb-1">$1</h6>')             // **見出し（行頭）
+            .replace(/^- (.*$)/gm, '<li class="mb-1">$1</li>')                            // - リスト
+            .replace(/\n/g, '<br>')                                                        // 改行
+            .trim();
+        
+        // リストをul要素で囲む
+        if (str.includes('<li>')) {
+            str = str.replace(/(<li>.*?<\/li>)/gs, '<ul class="mt-2 mb-2">$1</ul>');
+            str = str.replace(/<\/ul>\s*<br>\s*<ul>/g, ''); // 重複するul要素を統合
+        }
+        
+    } catch (error) {
+        console.error('フォーマット処理エラー:', error);
+        str = String(content); // エラー時は元の文字列をそのまま使用
+    }
+    
+    return str;
+}
+
+function showTypingIndicator() {
+    console.log('タイピングインジケーター表示');
+    
+    const typingIndicator = document.getElementById('typingIndicator');
+    if (typingIndicator) {
+        typingIndicator.style.display = 'block';
+    }
+}
+
+function hideTypingIndicator() {
+    console.log('タイピングインジケーター非表示');
+    
+    const typingIndicator = document.getElementById('typingIndicator');
+    if (typingIndicator) {
+        typingIndicator.style.display = 'none';
+    }
+}
+
+function resetSendButton() {
+    const sendButton = document.getElementById('sendButton');
+    if (sendButton) {
+        sendButton.disabled = false;
+        sendButton.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+    }
+}
+
+function showRecommendedSubsidies(subsidies) {
+    if (!subsidies || subsidies.length === 0) return;
+    
+    console.log('推奨補助金表示:', subsidies.length + '件');
+    
+    const subsidyList = document.getElementById('subsidyList');
+    const recommendedSubsidies = document.getElementById('recommendedSubsidies');
+    
+    if (!subsidyList || !recommendedSubsidies) {
+        console.log('推奨補助金表示エリアが見つかりません');
+        return;
+    }
+    
+    // 推奨補助金リストをクリア
+    subsidyList.innerHTML = '';
+    
+    subsidies.forEach(subsidy => {
+        const subsidyCard = document.createElement('div');
+        subsidyCard.className = 'subsidy-card card mb-2';
+        
+        const name = escapeHtml(subsidy.name || '');
+        const targetBusiness = escapeHtml(subsidy.target_business_type || subsidy.target_business || '');
+        const maxAmount = subsidy.max_amount || 0;
+        const description = escapeHtml((subsidy.description || '').substring(0, 100));
+        
+        subsidyCard.innerHTML = `
+            <div class="card-body p-3">
+                <h6 class="card-title text-primary mb-2">${name}</h6>
+                <p class="card-text small mb-2">
+                    <strong>対象:</strong> ${targetBusiness}<br>
+                    <strong>最大金額:</strong> ${maxAmount}万円
+                </p>
+                <p class="card-text small text-muted">${description}${description.length >= 100 ? '...' : ''}</p>
+            </div>
+        `;
+        
+        subsidyList.appendChild(subsidyCard);
+    });
+    
+    // 推奨補助金エリアを表示
+    recommendedSubsidies.style.display = 'block';
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+
+function getCSRFToken() {
+    // CSRFトークンをCookieから取得
+    const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='));
+    
+    if (cookieValue) {
+        return cookieValue.split('=')[1];
+    }
+    
+    // metaタグからも試行
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    if (csrfMeta) {
+        return csrfMeta.getAttribute('content');
+    }
+    
+    return '';
+}
+
+function scrollToBottom() {
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+}
+
+console.log('チャットスクリプト読み込み完了');

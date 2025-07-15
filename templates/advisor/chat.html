@@ -1,9 +1,331 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+/* チャットコンテナのスタイリング改善 */
+.chat-container {
+    height: 500px;
+    overflow-y: auto;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+}
+
+.chat-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    z-index: 1;
+}
+
+.chat-container > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* ウェルカムメッセージのスタイリング */
+.welcome-message {
+    text-align: center;
+    padding: 40px 20px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 12px;
+    border: 2px dashed #4caf50;
+    margin-bottom: 20px;
+}
+
+.welcome-message i {
+    font-size: 3rem;
+    color: #4caf50;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.welcome-message h5 {
+    color: #2e7d32;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.welcome-message p {
+    color: #388e3c;
+    font-style: italic;
+}
+
+/* ユーザーメッセージのスタイリング */
+.user-message .message-bubble {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 18px 18px 6px 18px;
+    padding: 16px 20px;
+    max-width: 75%;
+    margin-left: auto;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    border: none;
+}
+
+/* アシスタントメッセージのスタイリング */
+.assistant-message .message-bubble {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    color: #2d3748;
+    border-radius: 18px 18px 18px 6px;
+    padding: 20px 24px;
+    max-width: 85%;
+    margin-right: auto;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e2e8f0;
+}
+
+.assistant-message .message-bubble .assistant-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.assistant-message .message-bubble .assistant-header .robot-icon {
+    font-size: 1.2rem;
+    margin-right: 8px;
+    color: #4299e1;
+}
+
+.assistant-message .message-bubble .assistant-header strong {
+    color: #2d3748;
+    font-weight: 600;
+}
+
+/* メッセージ内容のスタイリング */
+.message-content {
+    line-height: 1.6;
+}
+
+.message-content h5 {
+    color: #2b6cb0;
+    font-weight: 600;
+    margin: 16px 0 8px 0;
+    padding-left: 12px;
+    border-left: 4px solid #4299e1;
+}
+
+.message-content h6 {
+    color: #2d3748;
+    font-weight: 600;
+    margin: 12px 0 6px 0;
+}
+
+.message-content ul {
+    margin: 12px 0;
+    padding-left: 20px;
+}
+
+.message-content li {
+    margin: 6px 0;
+    color: #4a5568;
+}
+
+.message-content strong {
+    color: #2d3748;
+    font-weight: 600;
+}
+
+/* タイムスタンプのスタイリング */
+.message-time {
+    font-size: 0.75rem;
+    margin-top: 8px;
+    opacity: 0.7;
+}
+
+.user-message .message-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.assistant-message .message-time {
+    color: #718096;
+}
+
+/* 推奨補助金カードのスタイリング */
+.subsidy-card {
+    background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+    border: 2px solid #feb2b2;
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.subsidy-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(254, 178, 178, 0.4);
+}
+
+.subsidy-card .card-title {
+    color: #c53030;
+    font-weight: 600;
+}
+
+/* デバッグ情報のスタイリング */
+#debugInfo {
+    background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+    border: 2px solid #90cdf4;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+#debugInfo h6 {
+    color: #2c5282;
+    margin-bottom: 12px;
+}
+
+#debugInfo pre {
+    background: #1a202c;
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 11px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* 入力エリアのスタイリング */
+.input-section {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+#questionInput {
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 16px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#questionInput:focus {
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+    outline: none;
+}
+
+#sendButton {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 12px 24px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+#sendButton:hover {
+    background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+}
+
+/* サイドバーのスタイリング */
+.sidebar {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.sidebar h5, .sidebar h6 {
+    color: #2d3748;
+    margin-bottom: 16px;
+}
+
+.sidebar i {
+    margin-right: 8px;
+    color: #4299e1;
+}
+
+/* クイック質問ボタンのスタイリング */
+.quick-question {
+    background: rgba(66, 153, 225, 0.05);
+    border: 1px solid rgba(66, 153, 225, 0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+
+.quick-question:hover {
+    background: rgba(66, 153, 225, 0.1);
+    border-color: #4299e1;
+    transform: translateX(4px);
+}
+
+.quick-question i {
+    color: #4299e1;
+    margin-right: 8px;
+}
+
+/* スクロールバーのスタイリング */
+.chat-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    border-radius: 4px;
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+}
+
+/* アニメーション */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-bubble {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+/* タイピングインジケーターのスタイリング */
+#typingIndicator {
+    text-align: center;
+    padding: 16px;
+    background: rgba(66, 153, 225, 0.1);
+    border-radius: 12px;
+    margin-top: 12px;
+    border: 1px solid rgba(66, 153, 225, 0.2);
+}
+
+#typingIndicator .spinner-border {
+    color: #4299e1;
+}
+</style>
+
 <div class="row">
     <!-- メインチャットエリア -->
     <div class="col-lg-8">
+        <!-- デバッグ情報表示エリア -->
+        <div id="debugInfo" class="alert" style="display: none;">
+            <h6>🔍 デバッグ情報</h6>
+            <div id="debugContent"></div>
+        </div>
+
         <div class="chat-container" id="chatContainer">
             <div class="welcome-message">
                 <i class="fas fa-robot"></i>
@@ -12,10 +334,10 @@
             </div>
         </div>
 
-        <div class="typing-indicator" id="typingIndicator">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
+        <div class="typing-indicator" id="typingIndicator" style="display: none;">
+            <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
             AIが回答を生成中です...
         </div>
 
@@ -35,7 +357,7 @@
                     <div class="col-auto">
                         <button 
                             type="submit" 
-                            class="btn btn-send h-100 px-4"
+                            class="btn btn-primary h-100 px-4"
                             id="sendButton"
                         >
                             <i class="fas fa-paper-plane"></i>
@@ -44,6 +366,16 @@
                     </div>
                 </div>
             </form>
+            
+            <!-- デバッグボタン -->
+            <div class="mt-2">
+                <button class="btn btn-sm btn-outline-info" onclick="toggleDebug()">
+                    <i class="fas fa-bug"></i> デバッグ表示
+                </button>
+                <button class="btn btn-sm btn-outline-warning" onclick="testAPI()">
+                    <i class="fas fa-flask"></i> API テスト
+                </button>
+            </div>
         </div>
     </div>
 
@@ -81,11 +413,15 @@
                 </small>
             </div>
 
-            <h6><i class="fas fa-list"></i> よくある質問</h6>
+            <h6 class="mt-4"><i class="fas fa-list"></i> よくある質問</h6>
             <div class="list-group list-group-flush">
                 <button class="list-group-item list-group-item-action quick-question" 
                         data-question="IT導入補助金について教えてください">
                     <i class="fas fa-laptop-code"></i> IT導入補助金について
+                </button>
+                <button class="list-group-item list-group-item-action quick-question" 
+                        data-question="ものづくり補助金の申請方法を教えてください">
+                    <i class="fas fa-cogs"></i> ものづくり補助金の申請方法
                 </button>
                 <button class="list-group-item list-group-item-action quick-question" 
                         data-question="事業再構築補助金の申請条件を教えてください">
@@ -95,19 +431,11 @@
                         data-question="小規模事業者持続化補助金について詳しく教えてください">
                     <i class="fas fa-store"></i> 持続化補助金について
                 </button>
-                <button class="list-group-item list-group-item-action quick-question" 
-                        data-question="製造業向けの補助金を教えてください">
-                    <i class="fas fa-industry"></i> 製造業向け補助金
-                </button>
-                <button class="list-group-item list-group-item-action quick-question" 
-                        data-question="設備投資に使える補助金はありますか？">
-                    <i class="fas fa-tools"></i> 設備投資補助金
-                </button>
             </div>
         </div>
 
         <!-- 推奨補助金表示エリア -->
-        <div class="sidebar mt-4" id="recommendedSubsidies" style="display: none;">
+        <div class="sidebar" id="recommendedSubsidies" style="display: none;">
             <h6><i class="fas fa-star text-warning"></i> 推奨補助金</h6>
             <div id="subsidyList"></div>
         </div>
@@ -115,212 +443,342 @@
 </div>
 
 <script>
-class ChatInterface {
-    constructor() {
-        this.sessionId = '{{ session_id }}';
-        this.chatContainer = document.getElementById('chatContainer');
-        this.questionForm = document.getElementById('questionForm');
-        this.questionInput = document.getElementById('questionInput');
-        this.sendButton = document.getElementById('sendButton');
-        this.typingIndicator = document.getElementById('typingIndicator');
-        this.businessType = document.getElementById('businessType');
-        this.companySize = document.getElementById('companySize');
-        this.recommendedSubsidies = document.getElementById('recommendedSubsidies');
-        this.subsidyList = document.getElementById('subsidyList');
+console.log('チャット機能を初期化中...');
 
-        this.initializeEventListeners();
-        this.loadConversationHistory();
-    }
+let chatSessionId = 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+let messageHistory = [];
+let lastResponse = null;
 
-    initializeEventListeners() {
-        this.questionForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.sendQuestion();
-        });
-
-        this.questionInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.sendQuestion();
-            }
-        });
-
-        // よくある質問のクリックイベント
-        document.querySelectorAll('.quick-question').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const question = e.currentTarget.dataset.question;
-                this.questionInput.value = question;
-                this.sendQuestion();
-            });
-        });
-    }
-
-    async sendQuestion() {
-        const questionText = this.questionInput.value.trim();
-        if (!questionText) return;
-
-        // UIを無効化
-        this.setLoading(true);
-
-        // ユーザーメッセージを表示
-        this.addMessage(questionText, 'user');
-
-        // 質問フィールドをクリア
-        this.questionInput.value = '';
-
-        // コンテキスト情報を収集
-        const context = {
-            business_type: this.businessType.value,
-            company_size: this.companySize.value
-        };
-
-        try {
-            const response = await fetch('/api/question/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
-                },
-                body: JSON.stringify({
-                    question: questionText,
-                    session_id: this.sessionId,
-                    context: context
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            // AI回答を表示
-            this.addMessage(data.answer, 'ai', data.confidence_score);
-
-            // 推奨補助金を表示
-            if (data.recommended_subsidies && data.recommended_subsidies.length > 0) {
-                this.showRecommendedSubsidies(data.recommended_subsidies);
-            }
-
-        } catch (error) {
-            console.error('Error:', error);
-            this.addMessage(
-                '申し訳ございませんが、システムエラーが発生しました。少し時間をおいて再度お試しください。',
-                'ai',
-                0
-            );
-        } finally {
-            this.setLoading(false);
-        }
-    }
-
-    addMessage(content, type, confidenceScore = null) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${type}`;
-
-        let messageHTML = `<div>${this.formatMessage(content)}</div>`;
-
-        if (type === 'ai' && confidenceScore !== null) {
-            const badgeClass = confidenceScore > 0.8 ? 'bg-success' : 
-                             confidenceScore > 0.6 ? 'bg-warning' : 'bg-secondary';
-            messageHTML += `
-                <div class="mt-2">
-                    <span class="badge ${badgeClass} confidence-badge">
-                        信頼度: ${Math.round(confidenceScore * 100)}%
-                    </span>
-                </div>
-            `;
-        }
-
-        messageDiv.innerHTML = messageHTML;
-
-        // ウェルカムメッセージを削除
-        const welcomeMessage = this.chatContainer.querySelector('.welcome-message');
-        if (welcomeMessage) {
-            welcomeMessage.remove();
-        }
-
-        this.chatContainer.appendChild(messageDiv);
-        this.scrollToBottom();
-    }
-
-    formatMessage(content) {
-        // マークダウン風の簡単なフォーマット
-        return content
-            .replace(/## (.*)/g, '<h6 class="fw-bold mt-3 mb-2">$1</h6>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n/g, '<br>');
-    }
-
-    showRecommendedSubsidies(subsidies) {
-        this.subsidyList.innerHTML = '';
-        
-        subsidies.forEach(subsidy => {
-            const subsidyCard = document.createElement('div');
-            subsidyCard.className = 'subsidy-card';
-            subsidyCard.innerHTML = `
-                <h6 class="fw-bold text-primary">${subsidy.name}</h6>
-                <p class="small mb-2">${subsidy.description}</p>
-                <div class="row small text-muted">
-                    <div class="col-6">
-                        <i class="fas fa-yen-sign"></i> 
-                        最大${(subsidy.max_amount / 10000).toLocaleString()}万円
-                    </div>
-                    <div class="col-6">
-                        <i class="fas fa-percentage"></i> 
-                        ${subsidy.subsidy_rate}
-                    </div>
-                </div>
-            `;
-            this.subsidyList.appendChild(subsidyCard);
-        });
-
-        this.recommendedSubsidies.style.display = 'block';
-    }
-
-    setLoading(isLoading) {
-        this.sendButton.disabled = isLoading;
-        this.questionInput.disabled = isLoading;
-        
-        if (isLoading) {
-            this.typingIndicator.style.display = 'block';
-            this.sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 処理中...';
-        } else {
-            this.typingIndicator.style.display = 'none';
-            this.sendButton.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
-        }
-    }
-
-    scrollToBottom() {
-        this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-    }
-
-    getCSRFToken() {
-        const cookieValue = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('csrftoken='))
-            ?.split('=')[1];
-        return cookieValue || '';
-    }
-
-    async loadConversationHistory() {
-        try {
-            const response = await fetch(`/api/history/${this.sessionId}/`);
-            if (response.ok) {
-                const history = await response.json();
-                history.reverse().forEach(message => {
-                    this.addMessage(message.content, message.message_type);
-                });
-            }
-        } catch (error) {
-            console.error('Failed to load conversation history:', error);
-        }
+// デバッグ表示切り替え
+function toggleDebug() {
+    const debugInfo = document.getElementById('debugInfo');
+    const debugContent = document.getElementById('debugContent');
+    
+    if (debugInfo.style.display === 'none') {
+        debugInfo.style.display = 'block';
+        updateDebugInfo();
+    } else {
+        debugInfo.style.display = 'none';
     }
 }
 
-// ページ読み込み完了時にチャットインターフェースを初期化
-document.addEventListener('DOMContentLoaded', () => {
-    new ChatInterface();
+// デバッグ情報更新
+function updateDebugInfo() {
+    const debugContent = document.getElementById('debugContent');
+    debugContent.innerHTML = `
+        <strong>セッションID:</strong> ${chatSessionId}<br>
+        <strong>メッセージ履歴:</strong> ${messageHistory.length}件<br>
+        <strong>最新レスポンス:</strong><br>
+        <pre>${JSON.stringify(lastResponse, null, 2)}</pre>
+    `;
+}
+
+// API直接テスト
+function testAPI() {
+    console.log('APIテスト開始');
+    
+    const testData = {
+        question: 'テスト質問',
+        session_id: chatSessionId,
+        business_type: 'IT・情報通信業',
+        company_size: '中小企業'
+    };
+    
+    fetch('/api/question/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken') || ''
+        },
+        body: JSON.stringify(testData)
+    })
+    .then(response => {
+        console.log('テストレスポンス:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('テストデータ:', data);
+        lastResponse = data;
+        updateDebugInfo();
+        alert('APIテスト完了。デバッグ情報を確認してください。');
+    })
+    .catch(error => {
+        console.error('APIテストエラー:', error);
+        alert('APIテストエラー: ' + error.message);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM読み込み完了');
+    
+    // 要素の取得
+    const chatContainer = document.getElementById('chatContainer');
+    const questionInput = document.getElementById('questionInput');
+    const sendButton = document.getElementById('sendButton');
+    const questionForm = document.getElementById('questionForm');
+    const typingIndicator = document.getElementById('typingIndicator');
+    
+    console.log('要素確認:');
+    console.log('chatContainer:', chatContainer ? 'OK' : 'NG');
+    console.log('questionInput:', questionInput ? 'OK' : 'NG');
+    console.log('sendButton:', sendButton ? 'OK' : 'NG');
+    console.log('questionForm:', questionForm ? 'OK' : 'NG');
+    
+    if (!chatContainer || !questionInput || !sendButton || !questionForm) {
+        console.error('必要な要素が見つかりません');
+        return;
+    }
+    
+    // フォーム送信イベント
+    questionForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        console.log('フォーム送信');
+        sendMessage();
+    });
+    
+    // クイック質問ボタン
+    document.querySelectorAll('.quick-question').forEach(button => {
+        button.addEventListener('click', function() {
+            const question = this.getAttribute('data-question');
+            if (question) {
+                questionInput.value = question;
+                sendMessage();
+            }
+        });
+    });
+    
+    console.log('チャット初期化完了');
+    
+    // メッセージ送信関数
+    function sendMessage() {
+        console.log('sendMessage開始');
+        
+        const message = questionInput.value.trim();
+        if (!message) {
+            console.log('メッセージが空');
+            return;
+        }
+        
+        console.log('送信メッセージ:', message);
+        
+        // ユーザーメッセージを表示
+        addMessage('user', message);
+        
+        // 入力欄をクリア
+        questionInput.value = '';
+        
+        // 送信ボタン無効化
+        sendButton.disabled = true;
+        sendButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> 送信中...';
+        
+        // タイピングインジケーター表示
+        typingIndicator.style.display = 'block';
+        
+        // API呼び出し
+        callAPI(message);
+    }
+    
+    // API呼び出し関数
+    function callAPI(message) {
+        console.log('API呼び出し開始');
+        
+        const businessType = document.getElementById('businessType')?.value || '';
+        const companySize = document.getElementById('companySize')?.value || '';
+        
+        const requestData = {
+            question: message,
+            session_id: chatSessionId,
+            business_type: businessType,
+            company_size: companySize
+        };
+        
+        console.log('リクエストデータ:', requestData);
+        
+        // CSRFトークン取得
+        const csrfToken = getCookie('csrftoken') || '';
+        console.log('CSRFトークン:', csrfToken ? '取得済み' : '未取得');
+        
+        fetch('/api/question/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => {
+            console.log('レスポンス受信:', response.status, response.statusText);
+            return response.json();
+        })
+        .then(data => {
+            console.log('レスポンスデータ:', data);
+            lastResponse = data;
+            
+            // タイピングインジケーター非表示
+            typingIndicator.style.display = 'none';
+            
+            // 送信ボタン復活
+            sendButton.disabled = false;
+            sendButton.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+            
+            if (data.success) {
+                // レスポンス構造に対応
+                const answer = data.result?.answer || data.answer || 'レスポンスが空です';
+                const subsidies = data.result?.recommended_subsidies || data.recommended_subsidies || [];
+                
+                addMessage('assistant', answer);
+                
+                // 推奨補助金表示
+                if (subsidies && subsidies.length > 0) {
+                    showRecommendedSubsidies(subsidies);
+                }
+                
+                // デバッグ情報更新
+                updateDebugInfo();
+            } else {
+                console.error('APIエラー詳細:', data);
+                addMessage('assistant', `❌ エラーが発生しました\n\n**詳細:** ${data.error || 'システムエラー'}\n\n**デバッグボタンを押して詳細を確認してください**`);
+                
+                // エラー時もデバッグ情報を更新
+                updateDebugInfo();
+            }
+        })
+        .catch(error => {
+            console.error('APIエラー:', error);
+            lastResponse = { error: error.message, stack: error.stack };
+            
+            typingIndicator.style.display = 'none';
+            sendButton.disabled = false;
+            sendButton.innerHTML = '<i class="fas fa-paper-plane"></i> 送信';
+            
+            addMessage('assistant', `🔌 ネットワークエラーが発生しました\n\n**エラー:** ${error.message}\n\n**デバッグボタンを押して詳細を確認してください**`);
+            
+            // エラー時もデバッグ情報を更新
+            updateDebugInfo();
+        });
+    }
+    
+    // メッセージ追加関数（スタイリング改善版）
+    function addMessage(sender, content) {
+        console.log('メッセージ追加:', sender, content?.substring(0, 50));
+        
+        // ウェルカムメッセージを削除
+        const welcomeMessage = chatContainer.querySelector('.welcome-message');
+        if (welcomeMessage) {
+            welcomeMessage.remove();
+        }
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `mb-4 ${sender}-message`;
+        
+        const timeStamp = new Date().toLocaleTimeString('ja-JP', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        
+        // 安全にコンテンツを処理
+        let safeContent = '';
+        if (content !== null && content !== undefined) {
+            safeContent = String(content)
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/^## (.*$)/gm, '<h5 class="text-primary mt-3 mb-2">$1</h5>')
+                .replace(/^### (.*$)/gm, '<h6 class="mt-2 mb-1">$1</h6>')
+                .replace(/^- (.*$)/gm, '<li>$1</li>')
+                .replace(/\n/g, '<br>');
+            
+            if (safeContent.includes('<li>')) {
+                safeContent = safeContent.replace(/(<li>.*?<\/li>)/gs, '<ul class="mt-2">$1</ul>');
+            }
+        } else {
+            safeContent = '<em>コンテンツが空です</em>';
+        }
+        
+        if (sender === 'user') {
+            messageDiv.innerHTML = `
+                <div class="d-flex justify-content-end">
+                    <div class="message-bubble">
+                        <div class="message-content">${safeContent}</div>
+                        <div class="message-time">${timeStamp}</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            messageDiv.innerHTML = `
+                <div class="d-flex justify-content-start">
+                    <div class="message-bubble">
+                        <div class="assistant-header">
+                            <span class="robot-icon">🤖</span>
+                            <strong>AI アドバイザー</strong>
+                        </div>
+                        <div class="message-content">${safeContent}</div>
+                        <div class="message-time">${timeStamp}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        messageHistory.push({
+            sender: sender,
+            content: content,
+            timestamp: new Date().toISOString()
+        });
+    }
+    
+    // 推奨補助金表示
+    function showRecommendedSubsidies(subsidies) {
+        const subsidyList = document.getElementById('subsidyList');
+        const recommendedSubsidies = document.getElementById('recommendedSubsidies');
+        
+        if (!subsidyList || !recommendedSubsidies) return;
+        
+        subsidyList.innerHTML = '';
+        
+        subsidies.forEach(subsidy => {
+            const subsidyCard = document.createElement('div');
+            subsidyCard.className = 'card mb-2 subsidy-card';
+            subsidyCard.innerHTML = `
+                <div class="card-body p-3">
+                    <h6 class="card-title">${escapeHtml(subsidy.name || '')}</h6>
+                    <p class="card-text small">
+                        <strong>対象:</strong> ${escapeHtml(subsidy.target_business_type || subsidy.target_business || '')}<br>
+                        <strong>最大金額:</strong> ${subsidy.max_amount || 0}万円
+                    </p>
+                </div>
+            `;
+            subsidyList.appendChild(subsidyCard);
+        });
+        
+        recommendedSubsidies.style.display = 'block';
+    }
+    
+    // HTMLエスケープ
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+    }
+    
+    // Cookie取得
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
 });
+
+console.log('チャットスクリプト読み込み完了');
 </script>
 {% endblock %}

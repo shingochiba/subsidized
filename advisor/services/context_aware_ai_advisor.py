@@ -454,7 +454,7 @@ class ContextAwareAIAdvisorService:
         response = f"""## ✅ {target_subsidy.name} の申請要件
 
 ### 🏢 **対象事業者**
-{target_subsidy.target_business}
+{target_subsidy.target_business_type_type_type}
 
 ### 📋 **基本要件**
 {target_subsidy.requirements}
@@ -571,7 +571,7 @@ class ContextAwareAIAdvisorService:
 {subsidy.description}
 
 ### 👥 対象事業者
-{subsidy.target_business}
+{subsidy.target_business_type_type}
 
 ### 💰 補助金額・補助率
 - **最大補助額**: {subsidy.max_amount:,}円
@@ -612,7 +612,7 @@ class ContextAwareAIAdvisorService:
         for subsidy in subsidies:
             response += f"""
 #### {subsidy.name}
-- **対象**: {subsidy.target_business}
+- **対象**: {subsidy.target_business_type_type}
 - **最大額**: {subsidy.max_amount:,}円
 - **補助率**: {subsidy.subsidy_rate}
 

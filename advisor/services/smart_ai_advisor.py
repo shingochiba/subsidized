@@ -186,7 +186,7 @@ class SmartAIAdvisorService:
 {target_subsidy.description}
 
 ### 👥 対象となる事業者
-{target_subsidy.target_business}
+{target_subsidy.target_business_type_type_type}
 
 ### 💰 補助金額・補助率
 - **最大補助額**: {target_subsidy.max_amount:,}円

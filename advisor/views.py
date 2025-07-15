@@ -653,7 +653,7 @@ def subsidy_list(request):
             'id': s.id,
             'name': s.name,
             'description': s.description,
-            'target_business_type': getattr(s, 'target_business_type', getattr(s, 'target_business', '')),
+            'target_business_type': getattr(s, 'target_business_type', getattr(s, 'target_business_type', '')),
             'max_amount': s.max_amount,
             'requirements': s.requirements
         } for s in subsidies
