@@ -1,4 +1,4 @@
-# advisor/views.py - 完全版
+# advisor/views.py - 完全版（エラー修正済み）
 # 補助金アドバイザーのビュー関数
 
 from django.shortcuts import render
@@ -597,16 +597,16 @@ def admin_dashboard(request):
 
 def subsidy_statistics(request):
     """
-    補助金統計ページ
+    補助金統計ページ（エラー修正済み）
     """
     from django.db.models import Count, Avg, Max, Min
     
-    # 基本統計
+    # 基本統計 - フィールド名衝突を回避
     subsidy_stats = SubsidyType.objects.aggregate(
         total_count=Count('id'),
         avg_amount=Avg('max_amount'),
-        max_amount=Max('max_amount'),
-        min_amount=Min('max_amount')
+        max_amount_value=Max('max_amount'),  # フィールド名を変更
+        min_amount_value=Min('max_amount')   # フィールド名を変更
     )
     
     # 事業種別ごとの統計
@@ -653,7 +653,7 @@ def subsidy_list(request):
             'id': s.id,
             'name': s.name,
             'description': s.description,
-            'target_business_type': getattr(s, 'target_business_type', getattr(s, 'target_business_type', '')),
+            'target_business_type': getattr(s, 'target_business_type', ''),
             'max_amount': s.max_amount,
             'requirements': s.requirements
         } for s in subsidies

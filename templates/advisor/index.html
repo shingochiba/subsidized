@@ -63,9 +63,9 @@
                 <div class="display-6 text-info mb-3">
                     <i class="fas fa-users"></i>
                 </div>
-                <h5 class="card-title">利用者</h5>
+                <h5 class="card-title">アクティブセッション</h5>
                 <h3 class="text-info">{{ stats.active_sessions }}</h3>
-                <p class="text-muted small">アクティブセッション数</p>
+                <p class="text-muted small">利用中のセッション数</p>
             </div>
         </div>
     </div>
@@ -74,190 +74,168 @@
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body text-center">
                 <div class="display-6 text-warning mb-3">
-                    <i class="fas fa-chart-line"></i>
+                    <i class="fas fa-star"></i>
                 </div>
-                <h5 class="card-title">予測機能</h5>
-                {% if new_features_available %}
-                <h3 class="text-warning">有効</h3>
-                <p class="text-muted small">AI予測が利用可能</p>
-                {% else %}
-                <h3 class="text-secondary">準備中</h3>
-                <p class="text-muted small">マイグレーション待ち</p>
-                {% endif %}
+                <h5 class="card-title">新機能</h5>
+                <h3 class="text-warning">
+                    {% if new_features_available %}ON{% else %}準備中{% endif %}
+                </h3>
+                <p class="text-muted small">高度な予測機能</p>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row">
-    <!-- 主要な補助金制度 -->
-    <div class="col-lg-8 mb-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-list-alt text-primary"></i> 主要な補助金制度
+    <!-- 主要機能 -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-cogs text-primary"></i> 主要機能
                 </h5>
             </div>
             <div class="card-body">
-                {% if subsidies %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>制度名</th>
-                                <th>対象</th>
-                                <th>最大金額</th>
-                                <th>詳細</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for subsidy in subsidies|slice:":5" %}
-                            <tr>
-                                <td>
-                                    <strong>{{ subsidy.name }}</strong>
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-dark">
-                                        {{ subsidy.target_business|truncatechars:20 }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="text-success fw-bold">
-                                        {{ subsidy.max_amount|floatformat:0 }}円
-                                    </span>
-                                </td>
-                                <td>
-                                    <small class="text-muted">
-                                        {{ subsidy.description|truncatechars:50 }}
-                                    </small>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-robot fa-2x text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6>AI相談</h6>
+                                <p class="text-muted small mb-0">
+                                    事業内容を入力するだけで、最適な補助金制度をAIが提案します。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-chart-line fa-2x text-success"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6>統計分析</h6>
+                                <p class="text-muted small mb-0">
+                                    補助金の採択率や利用状況を詳細に分析・可視化します。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if enhanced_services_available %}
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-crystal-ball fa-2x text-info"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6>予測機能</h6>
+                                <p class="text-muted small mb-0">
+                                    過去のデータから今後の公募スケジュールを予測します。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-bell fa-2x text-warning"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6>アラート機能</h6>
+                                <p class="text-muted small mb-0">
+                                    新しい補助金情報や申請期限をタイムリーにお知らせします。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
-                {% else %}
-                <div class="text-center py-4">
-                    <i class="fas fa-exclamation-circle text-muted display-6"></i>
-                    <p class="text-muted mt-3">補助金データがまだ登録されていません</p>
-                    {% if user.is_staff %}
-                    <a href="/admin/" class="btn btn-outline-primary">
-                        <i class="fas fa-plus"></i> データを追加
+                
+                <div class="text-center mt-4">
+                    <a href="{% url 'advisor:chat_interface' %}" class="btn btn-primary me-2">
+                        <i class="fas fa-play"></i> 基本版を開始
+                    </a>
+                    {% if enhanced_services_available %}
+                    <a href="{% url 'advisor:enhanced_chat_interface' %}" class="btn btn-success">
+                        <i class="fas fa-magic"></i> 強化版を試す
                     </a>
                     {% endif %}
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近の活動 -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock text-info"></i> 最近の活動
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_conversations %}
+                    <div class="list-group list-group-flush">
+                        {% for conversation in recent_conversations %}
+                            <div class="list-group-item border-0 px-0 py-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <p class="mb-1 small">
+                                            {{ conversation.content|truncatechars:50 }}
+                                        </p>
+                                        <small class="text-muted">
+                                            {{ conversation.timestamp|timesince }}前
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-light text-dark ms-2">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p>まだ相談履歴がありません</p>
+                        <a href="{% url 'advisor:chat_interface' %}" class="btn btn-outline-primary btn-sm">
+                            最初の相談を始める
+                        </a>
+                    </div>
                 {% endif %}
             </div>
         </div>
     </div>
-
-    <!-- 機能紹介・最新情報 -->
-    <div class="col-lg-4 mb-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-star text-warning"></i> 主な機能
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="list-group list-group-flush">
-                    <div class="list-group-item border-0 px-0">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-comments text-primary me-3"></i>
-                            <div>
-                                <h6 class="mb-1">AI相談チャット</h6>
-                                <small class="text-muted">対話形式で最適な制度を提案</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    {% if enhanced_services_available %}
-                    <div class="list-group-item border-0 px-0">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-robot text-success me-3"></i>
-                            <div>
-                                <h6 class="mb-1">強化AI機能</h6>
-                                <small class="text-muted">文脈理解・意図認識</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="list-group-item border-0 px-0">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-chart-line text-info me-3"></i>
-                            <div>
-                                <h6 class="mb-1">予測ダッシュボード</h6>
-                                <small class="text-muted">公募スケジュール予測</small>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <div class="list-group-item border-0 px-0">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-chart-bar text-warning me-3"></i>
-                            <div>
-                                <h6 class="mb-1">統計・分析</h6>
-                                <small class="text-muted">採択率・トレンド分析</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 最近の会話 -->
-        {% if recent_conversations %}
-        <div class="card border-0 shadow-sm mt-4">
-            <div class="card-header bg-white">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-clock text-info"></i> 最近の相談
-                </h5>
-            </div>
-            <div class="card-body">
-                {% for conversation in recent_conversations %}
-                <div class="d-flex align-items-start mb-3">
-                    <div class="me-3">
-                        <i class="fas fa-comment-dots text-muted"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <p class="mb-1 small">
-                            {{ conversation.content|truncatechars:80 }}
-                        </p>
-                        <small class="text-muted">
-                            {{ conversation.timestamp|timesince }}前
-                        </small>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-    </div>
 </div>
 
-<!-- 予測情報（利用可能な場合） -->
 {% if recent_predictions %}
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-crystal-ball text-purple"></i> 近日予測される公募
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt text-success"></i> 近日公募予定の補助金
                 </h5>
             </div>
             <div class="card-body">
                 <div class="row">
                     {% for prediction in recent_predictions %}
-                    <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="border rounded p-3 h-100">
-                            <h6 class="fw-bold">{{ prediction.subsidy_type.name }}</h6>
-                            <div class="small text-muted">
-                                <div><i class="fas fa-calendar"></i> {{ prediction.predicted_date }}</div>
-                                <div><i class="fas fa-percentage"></i> 信頼度: {{ prediction.confidence_score|floatformat:0 }}%</div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="text-primary">{{ prediction.subsidy_type.name }}</h6>
+                                <p class="small text-muted mb-2">
+                                    予測公募日: {{ prediction.predicted_date }}
+                                </p>
+                                <span class="badge bg-success">
+                                    推奨度: {{ prediction.recommendation_priority|floatformat:0 }}%
+                                </span>
                             </div>
                         </div>
-                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -266,25 +244,60 @@
 </div>
 {% endif %}
 
-<!-- クイックアクション -->
-<div class="row mt-5">
+<div class="row mt-4">
     <div class="col-12">
-        <div class="text-center">
-            <h3 class="mb-4">今すぐ始めましょう</h3>
-            <div class="d-flex justify-content-center gap-3 flex-wrap">
-                <a href="{% url 'advisor:chat_interface' %}" class="btn btn-primary btn-lg">
-                    <i class="fas fa-comments"></i> AI相談を開始
-                </a>
-                <a href="{% url 'advisor:statistics' %}" class="btn btn-outline-primary btn-lg">
-                    <i class="fas fa-chart-bar"></i> 統計を見る
-                </a>
-                {% if enhanced_services_available %}
-                <a href="{% url 'advisor:prediction_dashboard' %}" class="btn btn-outline-success btn-lg">
-                    <i class="fas fa-chart-line"></i> 予測を確認
-                </a>
-                {% endif %}
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="mb-3">補助金制度をもっと詳しく</h5>
+                <p class="text-muted mb-4">
+                    データ分析や統計情報で補助金制度の動向を把握しましょう
+                </p>
+                <div class="btn-group-vertical btn-group-lg" role="group">
+                    <a href="{% url 'advisor:statistics' %}" class="btn btn-outline-primary mb-2">
+                        <i class="fas fa-chart-bar"></i> 統計ダッシュボード
+                    </a>
+                    {% if enhanced_services_available %}
+                        <a href="{% url 'advisor:prediction_dashboard' %}" class="btn btn-outline-success mb-2">
+                            <i class="fas fa-crystal-ball"></i> 予測ダッシュボード
+                        </a>
+                        <a href="{% url 'advisor:trend_analysis' %}" class="btn btn-outline-info">
+                            <i class="fas fa-chart-line"></i> トレンド分析
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 統計カードのアニメーション
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = `opacity 0.6s ease ${index * 0.1}s, transform 0.6s ease ${index * 0.1}s`;
+        
+        setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, 100);
+    });
+
+    // ホバーエフェクト
+    const statCards = document.querySelectorAll('.card');
+    statCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
 {% endblock %}
