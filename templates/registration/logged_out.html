@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block title %}ログアウト完了 - 補助金アドバイザー{% endblock %}
+
+{% block extra_css %}
+<style>
+.logout-container {
+    max-width: 500px;
+    margin: 50px auto;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.logout-header {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+.logout-content {
+    padding: 30px;
+    text-align: center;
+}
+
+.success-icon {
+    font-size: 4rem;
+    color: #28a745;
+    margin-bottom: 20px;
+}
+
+.btn-group-custom {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-custom {
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary-custom {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border: none;
+}
+
+.btn-primary-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+    color: white;
+}
+
+.btn-secondary-custom {
+    background: transparent;
+    border: 2px solid #6c757d;
+    color: #6c757d;
+}
+
+.btn-secondary-custom:hover {
+    background: #6c757d;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.logout-info {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.feature-item {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease;
+}
+
+.feature-item:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.feature-item i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #007bff;
+}
+
+@media (max-width: 768px) {
+    .btn-group-custom {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .feature-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logout-container">
+    <div class="logout-header">
+        <h3><i class="fas fa-sign-out-alt"></i> ログアウト完了</h3>
+        <p class="mb-0">安全にログアウトされました</p>
+    </div>
+    
+    <div class="logout-content">
+        <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        
+        <h4>ログアウトが完了しました</h4>
+        <p class="text-muted mb-4">
+            補助金アドバイザーを安全にログアウトしました。<br>
+            またのご利用をお待ちしております。
+        </p>
+        
+        <div class="btn-group-custom">
+            <a href="{% url 'advisor:index' %}" class="btn-custom btn-primary-custom">
+                <i class="fas fa-home"></i> メインページに戻る
+            </a>
+            <a href="{% url 'login' %}" class="btn-custom btn-secondary-custom">
+                <i class="fas fa-sign-in-alt"></i> 再ログイン
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 利用可能な機能の案内 -->
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="logout-info">
+                <h5 class="text-center mb-3">
+                    <i class="fas fa-info-circle text-info"></i> ログアウト後もご利用可能な機能
+                </h5>
+                
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <i class="fas fa-comments"></i>
+                        <h6>AI相談</h6>
+                        <small class="text-muted">ゲストとして基本的な相談が可能</small>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <i class="fas fa-chart-bar"></i>
+                        <h6>統計閲覧</h6>
+                        <small class="text-muted">補助金制度の統計情報を閲覧</small>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <i class="fas fa-search"></i>
+                        <h6>制度検索</h6>
+                        <small class="text-muted">補助金制度の検索と詳細確認</small>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <i class="fas fa-chart-line"></i>
+                        <h6>トレンド確認</h6>
+                        <small class="text-muted">補助金のトレンド情報を確認</small>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-lock"></i> 
+                        アラート機能や管理機能をご利用の場合は、再度ログインしてください。
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- セキュリティ情報 -->
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card mt-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-shield-alt"></i> セキュリティ情報</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <small>セッションデータを安全に削除しました</small>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <small>認証情報をクリアしました</small>
+                    </div>
+                    <div class="d-flex align-items-center mb-0">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <small>ブラウザのキャッシュを推奨します</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ページアニメーション
+    const container = document.querySelector('.logout-container');
+    container.style.opacity = '0';
+    container.style.transform = 'translateY(30px)';
+    container.style.transition = 'all 0.6s ease';
+    
+    setTimeout(() => {
+        container.style.opacity = '1';
+        container.style.transform = 'translateY(0)';
+    }, 100);
+
+    // 機能カードのアニメーション
+    const featureItems = document.querySelectorAll('.feature-item');
+    featureItems.forEach((item, index) => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(20px)';
+        item.style.transition = `all 0.4s ease ${index * 0.1}s`;
+        
+        setTimeout(() => {
+            item.style.opacity = '1';
+            item.style.transform = 'translateY(0)';
+        }, 500);
+    });
+
+    // 自動リダイレクト（オプション - 30秒後）
+    let countdown = 30;
+    const redirectTimer = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+            clearInterval(redirectTimer);
+            // 自動リダイレクトは無効にして、ユーザーの意思に委ねる
+            // window.location.href = "{% url 'advisor:index' %}";
+        }
+    }, 1000);
+});
+
+// ブラウザの戻るボタン対策
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        // ページがキャッシュから復元された場合は再読み込み
+        window.location.reload();
+    }
+});
+</script>
+{% endblock %}

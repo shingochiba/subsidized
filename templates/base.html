@@ -161,22 +161,32 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-user"></i> {{ user.username }}
+                                {% if user.is_staff %}
+                                    <span class="badge bg-warning ms-1">Admin</span>
+                                {% endif %}
                             </a>
                             <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'advisor:user_alerts' %}">
+                                    <i class="fas fa-bell"></i> アラート
+                                </a></li>
                                 {% if user.is_staff %}
+                                    <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{% url 'advisor:admin_dashboard' %}">
                                         <i class="fas fa-cog"></i> 管理ダッシュボード
                                     </a></li>
-                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'admin:index' %}">
+                                        <i class="fas fa-database"></i> Django管理画面
+                                    </a></li>
                                 {% endif %}
-                                <li><a class="dropdown-item" href="{% url 'admin:logout' %}">
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="confirmLogout(event)">
                                     <i class="fas fa-sign-out-alt"></i> ログアウト
                                 </a></li>
                             </ul>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'admin:login' %}">
+                            <a class="nav-link" href="{% url 'login' %}">
                                 <i class="fas fa-sign-in-alt"></i> ログイン
                             </a>
                         </li>
@@ -249,6 +259,13 @@
         </div>
     </footer>
 
+    <!-- CSRF Token for JavaScript -->
+    {% csrf_token %}
+    <script>
+        // CSRFトークンをグローバル変数として設定
+        window.csrfToken = '{{ csrf_token }}';
+    </script>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -257,6 +274,153 @@
     
     <!-- カスタムJS -->
     <script src="{% static 'js/main.js' %}"></script>
+    
+    <!-- ログアウト確認機能 -->
+    <script>
+    // CSRFトークンを取得する関数（複数の方法で試行）
+    function getCSRFToken() {
+        // 1. グローバル変数から取得
+        if (window.csrfToken) {
+            return window.csrfToken;
+        }
+        
+        // 2. hidden inputから取得
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            return csrfToken.value;
+        }
+        
+        // 3. Cookieから取得
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='));
+        
+        if (cookieValue) {
+            return cookieValue.split('=')[1];
+        }
+        
+        // 4. metaタグから取得
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        if (metaToken) {
+            return metaToken.getAttribute('content');
+        }
+        
+        return null;
+    }
+    
+    function confirmLogout(event) {
+        event.preventDefault();
+        
+        // カスタムモーダル作成
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+            <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);" id="logoutModal">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning text-dark">
+                            <h5 class="modal-title">
+                                <i class="fas fa-sign-out-alt"></i> ログアウト確認
+                            </h5>
+                        </div>
+                        <div class="modal-body">
+                            <div class="text-center">
+                                <i class="fas fa-question-circle fa-3x text-warning mb-3"></i>
+                                <h6>本当にログアウトしますか？</h6>
+                                <p class="text-muted small">
+                                    ログアウトすると、アラートや管理機能が利用できなくなります。<br>
+                                    基本的な機能は引き続きご利用いただけます。
+                                </p>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeLogoutModal()">
+                                <i class="fas fa-times"></i> キャンセル
+                            </button>
+                            <button type="button" class="btn btn-warning" onclick="executeLogout()">
+                                <i class="fas fa-sign-out-alt"></i> ログアウト
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // エスケープキーでモーダルを閉じる
+        const escapeHandler = function(e) {
+            if (e.key === 'Escape') {
+                closeLogoutModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        // モーダル背景クリックで閉じる
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal || e.target.classList.contains('modal')) {
+                closeLogoutModal();
+            }
+        });
+    }
+    
+    function closeLogoutModal() {
+        const modal = document.getElementById('logoutModal');
+        if (modal) {
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+            }, 200);
+        }
+    }
+    
+    function executeLogout() {
+        // ローディング表示
+        const modal = document.getElementById('logoutModal');
+        const modalBody = modal.querySelector('.modal-body');
+        const modalFooter = modal.querySelector('.modal-footer');
+        
+        modalBody.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border text-warning mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h6>ログアウト中...</h6>
+                <p class="text-muted small">安全にログアウトしています。</p>
+            </div>
+        `;
+        modalFooter.style.display = 'none';
+        
+        // CSRFトークンを取得
+        const csrfToken = getCSRFToken();
+        
+        // フォームを作成してPOSTでログアウト
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "logout" %}';
+        form.style.display = 'none';
+        
+        // CSRFトークンを追加（取得できた場合のみ）
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+        } else {
+            // CSRFトークンが取得できない場合はGETリクエストで
+            console.warn('CSRF token not found, using GET request');
+            form.method = 'GET';
+        }
+        
+        document.body.appendChild(form);
+        
+        // 1秒後にログアウト実行
+        setTimeout(() => {
+            form.submit();
+        }, 1000);
+    }
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

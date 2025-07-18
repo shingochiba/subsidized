@@ -1,108 +1,593 @@
+/**
+ * Enhanced Chat Interface JavaScript
+ * 改良版チャットインターフェース
+ */
+
 class EnhancedChatInterface {
     constructor() {
         this.sessionId = this.generateSessionId();
-        this.conversationHistory = [];
         this.isTyping = false;
-        this.setupEventListeners();
-        this.setupStreamingChat();
-    }
-    
-    generateSessionId() {
-        return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
-    
-    setupEventListeners() {
-        const chatInput = document.getElementById('chat-input');
-        const sendButton = document.getElementById('send-chat');
+        this.conversationHistory = [];
+        this.messageQueue = [];
+        this.isProcessingQueue = false;
+        this.settings = {
+            autoScroll: true,
+            soundEnabled: false,
+            animationsEnabled: true,
+            typingSpeed: 50, // ms per character
+            maxRetries: 3
+        };
         
-        // Enter キーでの送信
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+        this.init();
+    }
+
+    /**
+     * 初期化メソッド
+     */
+    init() {
+        this.initializeEventListeners();
+        this.initializeElements();
+        this.loadSettings();
+        this.setupKeyboardShortcuts();
+        this.startHeartbeat();
+        
+        // アクセシビリティの改善
+        this.setupAccessibility();
+        
+        // パフォーマンス監視
+        this.setupPerformanceMonitoring();
+    }
+
+    /**
+     * 要素の初期化
+     */
+    initializeElements() {
+        this.chatInput = document.getElementById('chat-input');
+        this.sendButton = document.getElementById('send-chat');
+        this.chatMessages = document.getElementById('chat-messages');
+        this.welcomeScreen = document.getElementById('welcome-screen');
+        
+        // 要素が存在しない場合のエラーハンドリング
+        if (!this.chatInput || !this.sendButton || !this.chatMessages) {
+            console.error('Required chat elements not found');
+            return;
+        }
+        
+        this.autoResizeTextarea();
+        this.updateSendButtonState();
+    }
+
+    /**
+     * イベントリスナーの設定
+     */
+    initializeEventListeners() {
+        // 送信ボタン
+        this.sendButton?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.sendMessage();
+        });
+
+        // テキストエリアのイベント
+        this.chatInput?.addEventListener('keydown', (e) => this.handleKeyDown(e));
+        this.chatInput?.addEventListener('input', () => {
+            this.autoResizeTextarea();
+            this.updateSendButtonState();
+            this.handleTypingIndicator();
+        });
+        this.chatInput?.addEventListener('paste', (e) => this.handlePaste(e));
+
+        // ウィンドウイベント
+        window.addEventListener('beforeunload', () => this.saveConversation());
+        window.addEventListener('online', () => this.handleOnlineStatus(true));
+        window.addEventListener('offline', () => this.handleOnlineStatus(false));
+        
+        // Intersection Observer for auto-scroll
+        if (this.chatMessages) {
+            this.setupScrollObserver();
+        }
+    }
+
+    /**
+     * キーボードショートカットの設定
+     */
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Enter で送信
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
                 this.sendMessage();
             }
+            
+            // Escape でフォーカスをリセット
+            if (e.key === 'Escape') {
+                this.chatInput?.blur();
+            }
         });
+    }
+
+    /**
+     * アクセシビリティの設定
+     */
+    setupAccessibility() {
+        // スクリーンリーダー用のlive region
+        const liveRegion = document.createElement('div');
+        liveRegion.setAttribute('aria-live', 'polite');
+        liveRegion.setAttribute('aria-atomic', 'true');
+        liveRegion.className = 'sr-only';
+        liveRegion.id = 'chat-live-region';
+        document.body.appendChild(liveRegion);
         
-        // 送信ボタンクリック
-        sendButton.addEventListener('click', () => {
+        // キーボードナビゲーション
+        this.chatMessages?.setAttribute('role', 'log');
+        this.chatMessages?.setAttribute('aria-label', '会話履歴');
+        
+        this.chatInput?.setAttribute('aria-label', 'メッセージを入力');
+        this.sendButton?.setAttribute('aria-label', 'メッセージを送信');
+    }
+
+    /**
+     * パフォーマンス監視の設定
+     */
+    setupPerformanceMonitoring() {
+        this.performance = {
+            messageCount: 0,
+            totalResponseTime: 0,
+            averageResponseTime: 0,
+            errors: 0
+        };
+    }
+
+    /**
+     * スクロール監視の設定
+     */
+    setupScrollObserver() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                this.settings.autoScroll = entry.isIntersecting;
+            });
+        }, { threshold: 0.1 });
+
+        // ダミー要素を作成してスクロール位置を監視
+        const scrollSentinel = document.createElement('div');
+        scrollSentinel.style.height = '1px';
+        scrollSentinel.style.marginTop = '-1px';
+        this.chatMessages.appendChild(scrollSentinel);
+        observer.observe(scrollSentinel);
+    }
+
+    /**
+     * セッションIDの生成
+     */
+    generateSessionId() {
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substr(2, 9);
+        return `enhanced_chat_${timestamp}_${random}`;
+    }
+
+    /**
+     * キーダウンイベントの処理
+     */
+    handleKeyDown(e) {
+        if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
             this.sendMessage();
-        });
-        
-        // 入力中の表示
-        chatInput.addEventListener('input', () => {
-            this.handleTypingIndicator();
-        });
+        }
     }
-    
-    setupStreamingChat() {
-        // WebSocket または Server-Sent Events の設定
-        // リアルタイム回答のための準備
-        this.streamingEnabled = true;
+
+    /**
+     * ペーストイベントの処理
+     */
+    handlePaste(e) {
+        // 画像ペーストの場合の処理（将来の機能拡張用）
+        const items = e.clipboardData?.items;
+        if (items) {
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    this.showMessage('画像の送信は現在サポートされていません。', 'warning');
+                    return;
+                }
+            }
+        }
     }
-    
-    async sendMessage() {
-        const chatInput = document.getElementById('chat-input');
-        const message = chatInput.value.trim();
+
+    /**
+     * タイピングインジケーターの処理
+     */
+    handleTypingIndicator() {
+        // 将来の機能拡張用（リアルタイムタイピング表示）
+        if (this.typingTimer) {
+            clearTimeout(this.typingTimer);
+        }
         
-        if (!message) return;
+        this.typingTimer = setTimeout(() => {
+            // タイピング停止の処理
+        }, 1000);
+    }
+
+    /**
+     * オンライン状態の処理
+     */
+    handleOnlineStatus(isOnline) {
+        const statusMessage = isOnline ? 'オンライン状態に復帰しました' : 'オフライン状態です';
+        const messageType = isOnline ? 'success' : 'warning';
         
+        this.showMessage(statusMessage, messageType);
+        this.updateConnectionStatus(isOnline);
+    }
+
+    /**
+     * 接続状態の更新
+     */
+    updateConnectionStatus(isOnline) {
+        const statusIndicator = document.querySelector('.status-indicator');
+        if (statusIndicator) {
+            statusIndicator.style.background = isOnline ? '#38a169' : '#e53e3e';
+        }
+        
+        const statusText = document.querySelector('.chat-status span');
+        if (statusText) {
+            statusText.textContent = isOnline ? 'AIアドバイザーがオンラインです' : 'オフライン状態です';
+        }
+    }
+
+    /**
+     * テキストエリアの自動リサイズ
+     */
+    autoResizeTextarea() {
+        if (!this.chatInput) return;
+        
+        this.chatInput.style.height = 'auto';
+        const newHeight = Math.min(this.chatInput.scrollHeight, 120);
+        this.chatInput.style.height = newHeight + 'px';
+    }
+
+    /**
+     * 送信ボタンの状態更新
+     */
+    updateSendButtonState() {
+        if (!this.sendButton || !this.chatInput) return;
+        
+        const hasText = this.chatInput.value.trim().length > 0;
+        const isEnabled = hasText && !this.isTyping && navigator.onLine;
+        
+        this.sendButton.disabled = !isEnabled;
+        this.sendButton.setAttribute('aria-disabled', (!isEnabled).toString());
+    }
+
+    /**
+     * メッセージ送信
+     */
+    async sendMessage(retryCount = 0) {
+        const message = this.chatInput?.value.trim();
+        
+        if (!message || this.isTyping) return;
+        
+        // 入力値の検証
+        if (message.length > 1000) {
+            this.showMessage('メッセージは1000文字以内で入力してください。', 'warning');
+            return;
+        }
+
+        // ウェルカムスクリーンを非表示
+        this.hideWelcomeScreen();
+
         // ユーザーメッセージを表示
         this.addMessageToChat('user', message);
-        
-        // 入力欄をクリア
-        chatInput.value = '';
-        
-        // タイピングインジケーター表示
-        this.showTypingIndicator();
-        
+        this.clearInput();
+
+        // パフォーマンス測定開始
+        const startTime = performance.now();
+
         try {
-            // ユーザーコンテキストの取得
-            const userContext = this.getUserContext();
+            // タイピングインジケーターを表示
+            this.showTypingIndicator();
             
-            // APIリクエスト
-            const response = await fetch('/api/enhanced-chat/', {
+            const response = await this.callChatAPI(message);
+            
+            // レスポンス時間を記録
+            const responseTime = performance.now() - startTime;
+            this.updatePerformanceMetrics(responseTime);
+            
+            this.hideTypingIndicator();
+            
+            if (response.success) {
+                await this.typewriterEffect(response.response.answer);
+                this.announceToScreenReader(`AIの回答: ${response.response.answer.substring(0, 100)}...`);
+            } else {
+                throw new Error(response.error || 'Unknown error');
+            }
+            
+        } catch (error) {
+            this.hideTypingIndicator();
+            this.handleError(error, retryCount, message);
+        }
+    }
+
+    /**
+     * エラーハンドリング
+     */
+    handleError(error, retryCount, originalMessage) {
+        console.error('Chat API Error:', error);
+        this.performance.errors++;
+        
+        if (retryCount < this.settings.maxRetries && navigator.onLine) {
+            setTimeout(() => {
+                this.sendMessage(retryCount + 1);
+            }, Math.pow(2, retryCount) * 1000); // 指数バックオフ
+            
+            this.showMessage(`再試行中... (${retryCount + 1}/${this.settings.maxRetries})`, 'info');
+        } else {
+            const errorMessage = this.getErrorMessage(error);
+            this.addMessageToChat('assistant', errorMessage);
+            this.showMessage('エラーが発生しました', 'error');
+        }
+    }
+
+    /**
+     * エラーメッセージの取得
+     */
+    getErrorMessage(error) {
+        if (!navigator.onLine) {
+            return 'インターネット接続を確認してください。オフライン状態では回答できません。';
+        }
+        
+        if (error.name === 'TimeoutError') {
+            return 'リクエストがタイムアウトしました。もう一度お試しください。';
+        }
+        
+        if (error.status === 429) {
+            return 'リクエストが多すぎます。しばらく待ってからお試しください。';
+        }
+        
+        if (error.status >= 500) {
+            return 'サーバーエラーが発生しました。しばらく待ってからお試しください。';
+        }
+        
+        return '申し訳ございません。技術的な問題が発生しました。しばらく待ってからお試しください。';
+    }
+
+    /**
+     * パフォーマンス指標の更新
+     */
+    updatePerformanceMetrics(responseTime) {
+        this.performance.messageCount++;
+        this.performance.totalResponseTime += responseTime;
+        this.performance.averageResponseTime = this.performance.totalResponseTime / this.performance.messageCount;
+        
+        // コンソールに統計情報を出力（開発用）
+        if (this.performance.messageCount % 10 === 0) {
+            console.log('Chat Performance:', {
+                messages: this.performance.messageCount,
+                avgResponseTime: Math.round(this.performance.averageResponseTime),
+                errors: this.performance.errors,
+                errorRate: (this.performance.errors / this.performance.messageCount * 100).toFixed(2) + '%'
+            });
+        }
+    }
+
+    /**
+     * Chat API呼び出し（フォールバック対応）
+     */
+    async callChatAPI(message) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒タイムアウト
+
+        try {
+            // まず enhanced-chat API を試行
+            const response = await fetch('/advisor/api/enhanced-chat/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
+                    'X-CSRFToken': this.getCSRFToken(),
                 },
                 body: JSON.stringify({
                     message: message,
                     session_id: this.sessionId,
-                    user_context: userContext
-                })
+                    user_context: this.getUserContext()
+                }),
+                signal: controller.signal
             });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                this.hideTypingIndicator();
-                this.addMessageToChat('assistant', data.response.answer);
-                
-                // 推奨補助金があれば表示
-                if (data.response.recommended_subsidies && data.response.recommended_subsidies.length > 0) {
-                    this.showRecommendedSubsidies(data.response.recommended_subsidies);
-                }
-                
-                // 信頼度スコアの表示
-                this.showConfidenceScore(data.response.confidence_score);
-                
-            } else {
-                this.hideTypingIndicator();
-                this.addMessageToChat('assistant', 'エラーが発生しました。もう一度お試しください。');
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                // enhanced-chat が失敗した場合、従来の analyze API にフォールバック
+                return await this.fallbackToAnalyzeAPI(message);
             }
+
+            return await response.json();
             
         } catch (error) {
-            console.error('Chat error:', error);
-            this.hideTypingIndicator();
-            this.addMessageToChat('assistant', '接続エラーが発生しました。');
+            clearTimeout(timeoutId);
+            
+            if (error.name === 'AbortError') {
+                throw new Error('Request timeout');
+            }
+            
+            // ネットワークエラーの場合、フォールバックを試行
+            try {
+                return await this.fallbackToAnalyzeAPI(message);
+            } catch (fallbackError) {
+                throw error; // 元のエラーを投げる
+            }
         }
     }
-    
-    addMessageToChat(type, content) {
-        const chatContainer = document.getElementById('chat-messages');
+
+    /**
+     * 従来のanalyze APIへのフォールバック
+     */
+    async fallbackToAnalyzeAPI(message) {
+        try {
+            const response = await fetch('/advisor/api/analyze/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    question: message,
+                    session_id: this.sessionId
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            // レスポンス形式を enhanced-chat 形式に変換
+            return {
+                success: true,
+                response: {
+                    answer: data.answer || '申し訳ございません。回答を生成できませんでした。',
+                    recommended_subsidies: data.recommended_subsidies || [],
+                    confidence_score: data.confidence_score || 0.5,
+                    model_used: 'fallback-analyze'
+                }
+            };
+            
+        } catch (error) {
+            console.warn('Fallback API also failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * ユーザーコンテキストの取得
+     */
+    getUserContext() {
+        return {
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            messageCount: this.performance.messageCount
+        };
+    }
+
+    /**
+     * CSRFトークンの取得
+     */
+    getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+               document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
+    /**
+     * 入力フィールドのクリア
+     */
+    clearInput() {
+        if (this.chatInput) {
+            this.chatInput.value = '';
+            this.autoResizeTextarea();
+            this.updateSendButtonState();
+        }
+    }
+
+    /**
+     * ウェルカムスクリーンの非表示
+     */
+    hideWelcomeScreen() {
+        if (this.welcomeScreen) {
+            this.welcomeScreen.style.display = 'none';
+        }
+    }
+
+    /**
+     * タイピングインジケーターの表示
+     */
+    showTypingIndicator() {
+        this.isTyping = true;
+        this.updateSendButtonState();
+        
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'typing-indicator';
+        typingDiv.id = 'typing-indicator';
+        typingDiv.innerHTML = `
+            <div class="typing-content">
+                <span>AIが回答を作成中</span>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        `;
+        
+        this.chatMessages?.appendChild(typingDiv);
+        this.scrollToBottom();
+    }
+
+    /**
+     * タイピングインジケーターの非表示
+     */
+    hideTypingIndicator() {
+        this.isTyping = false;
+        this.updateSendButtonState();
+        
+        const typingIndicator = document.getElementById('typing-indicator');
+        typingIndicator?.remove();
+    }
+
+    /**
+     * タイプライター効果でメッセージを表示
+     */
+    async typewriterEffect(content) {
+        if (!this.settings.animationsEnabled) {
+            this.addMessageToChat('assistant', content);
+            return;
+        }
+
+        // メッセージコンテナを作成
+        const messageDiv = this.createMessageElement('assistant', '');
+        this.chatMessages?.appendChild(messageDiv);
+        
+        const messageTextElement = messageDiv.querySelector('.message-text');
+        if (!messageTextElement) return;
+
+        // HTMLタグを保持しながらタイプライター効果を実現
+        const formattedContent = this.formatAssistantMessage(content);
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = formattedContent;
+        
+        let displayText = '';
+        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+        
+        for (let i = 0; i < textContent.length; i++) {
+            displayText += textContent[i];
+            messageTextElement.textContent = displayText;
+            
+            if (this.settings.autoScroll) {
+                this.scrollToBottom();
+            }
+            
+            // 句読点で少し長めの間隔
+            const delay = /[。、！？\.\!\?]/.test(textContent[i]) ? 
+                         this.settings.typingSpeed * 3 : this.settings.typingSpeed;
+            
+            await this.sleep(delay);
+        }
+        
+        // 最終的にHTMLフォーマットを適用
+        messageTextElement.innerHTML = formattedContent;
+        this.scrollToBottom();
+    }
+
+    /**
+     * sleep関数
+     */
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * メッセージ要素の作成
+     */
+    createMessageElement(type, content) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = `chat-message ${type}-message`;
+        messageDiv.className = `chat-message ${type}-message slide-up`;
         
         const timestamp = new Date().toLocaleTimeString('ja-JP', {
             hour: '2-digit',
@@ -115,11 +600,15 @@ class EnhancedChatInterface {
                     <div class="message-text">${this.escapeHtml(content)}</div>
                     <div class="message-time">${timestamp}</div>
                 </div>
-                <div class="message-avatar user-avatar">👤</div>
+                <div class="message-avatar user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
             `;
         } else {
             messageDiv.innerHTML = `
-                <div class="message-avatar assistant-avatar">🤖</div>
+                <div class="message-avatar assistant-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
                 <div class="message-content assistant-content">
                     <div class="message-text">${this.formatAssistantMessage(content)}</div>
                     <div class="message-time">${timestamp}</div>
@@ -127,8 +616,19 @@ class EnhancedChatInterface {
             `;
         }
         
-        chatContainer.appendChild(messageDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        return messageDiv;
+    }
+
+    /**
+     * チャットにメッセージを追加
+     */
+    addMessageToChat(type, content) {
+        const messageDiv = this.createMessageElement(type, content);
+        this.chatMessages?.appendChild(messageDiv);
+        
+        if (this.settings.autoScroll) {
+            this.scrollToBottom();
+        }
         
         // 会話履歴に追加
         this.conversationHistory.push({
@@ -136,450 +636,245 @@ class EnhancedChatInterface {
             content: content,
             timestamp: new Date()
         });
+        
+        // ローカルストレージに保存
+        this.saveConversation();
     }
-    
+
+    /**
+     * アシスタントメッセージのフォーマット
+     */
     formatAssistantMessage(content) {
-        // Markdownライクな書式を HTML に変換
         return content
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\n\n/g, '</p><p>')
             .replace(/\n/g, '<br>')
-            .replace(/###\s*(.*)/g, '<h4>$1</h4>')
-            .replace(/##\s*(.*)/g, '<h3>$1</h3>')
-            .replace(/---/g, '<hr>');
+            .replace(/^### (.*$)/gm, '<h4>$1</h4>')
+            .replace(/^## (.*$)/gm, '<h3>$1</h3>')
+            .replace(/^# (.*$)/gm, '<h2>$1</h2>')
+            .replace(/^\* (.+$)/gm, '<li>$1</li>')
+            .replace(/^(\d+)\. (.+$)/gm, '<li>$1. $2</li>')
+            .replace(/(<li>.*<\/li>)/gs, (match) => {
+                if (!match.includes('<ul>') && !match.includes('<ol>')) {
+                    return `<ul>${match}</ul>`;
+                }
+                return match;
+            })
+            .replace(/^> (.+$)/gm, '<blockquote>$1</blockquote>');
     }
-    
-    showTypingIndicator() {
-        const chatContainer = document.getElementById('chat-messages');
-        const typingDiv = document.createElement('div');
-        typingDiv.id = 'typing-indicator';
-        typingDiv.className = 'chat-message assistant-message typing';
-        typingDiv.innerHTML = `
-            <div class="message-avatar assistant-avatar">🤖</div>
-            <div class="message-content assistant-content">
-                <div class="typing-animation">
-                    <span></span><span></span><span></span>
-                </div>
-            </div>
-        `;
-        
-        chatContainer.appendChild(typingDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-    
-    hideTypingIndicator() {
-        const typingIndicator = document.getElementById('typing-indicator');
-        if (typingIndicator) {
-            typingIndicator.remove();
-        }
-    }
-    
-    showRecommendedSubsidies(subsidies) {
-        const recommendationsDiv = document.createElement('div');
-        recommendationsDiv.className = 'recommended-subsidies';
-        
-        let html = '<div class="recommendations-header">💡 おすすめの補助金</div>';
-        
-        subsidies.forEach(subsidy => {
-            html += `
-                <div class="subsidy-recommendation">
-                    <h4>${subsidy.name}</h4>
-                    <p>${subsidy.description}</p>
-                    <div class="subsidy-details">
-                        <span class="budget">💰 最大${subsidy.max_amount.toLocaleString()}万円</span>
-                        <span class="target">🎯 ${subsidy.target_business_type}</span>
-                    </div>
-                </div>
-            `;
-        });
-        
-        const chatContainer = document.getElementById('chat-messages');
-        chatContainer.appendChild(recommendationsDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-    
-    showConfidenceScore(score) {
-        if (!score || score < 0.5) return;
-        
-        const scoreDiv = document.createElement('div');
-        scoreDiv.className = 'confidence-score';
-        
-        const percentage = Math.round(score * 100);
-        const scoreClass = score >= 0.8 ? 'high' : score >= 0.6 ? 'medium' : 'low';
-        
-        scoreDiv.innerHTML = `
-            <div class="confidence-indicator ${scoreClass}">
-                信頼度: ${percentage}% 
-                <span class="confidence-bar">
-                    <span class="confidence-fill" style="width: ${percentage}%"></span>
-                </span>
-            </div>
-        `;
-        
-        const lastMessage = document.querySelector('.chat-message:last-child .message-content');
-        if (lastMessage) {
-            lastMessage.appendChild(scoreDiv);
-        }
-    }
-    
-    getUserContext() {
-        // フォームから現在のユーザー情報を取得
-        return {
-            business_type: document.getElementById('business-type')?.value || '',
-            company_size: document.getElementById('company-size')?.value || '',
-            region: document.getElementById('region')?.value || '',
-            industry: document.getElementById('industry')?.value || ''
-        };
-    }
-    
+
+    /**
+     * HTMLエスケープ
+     */
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-    
-    getCSRFToken() {
-        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
-    }
-}
 
-// 補助金予測カレンダー機能
-class SubsidyPredictionCalendar {
-    constructor() {
-        this.currentDate = new Date();
-        this.predictions = {};
-        this.alerts = [];
-        this.setupCalendar();
-        this.loadPredictions();
-    }
-    
-    async loadPredictions() {
-        try {
-            const response = await fetch('/api/subsidy-predictions/');
-            const data = await response.json();
-            
-            if (data.success) {
-                this.predictions = data.data.calendar;
-                this.alerts = data.data.alerts;
-                this.trends = data.data.trends;
-                
-                this.renderCalendar();
-                this.showAlerts();
-                this.showTrends();
-            }
-        } catch (error) {
-            console.error('Failed to load predictions:', error);
-        }
-    }
-    
-    setupCalendar() {
-        this.calendarContainer = document.getElementById('prediction-calendar');
-        if (!this.calendarContainer) {
-            console.warn('Calendar container not found');
-            return;
-        }
-        
-        // カレンダーヘッダー
-        const header = document.createElement('div');
-        header.className = 'calendar-header';
-        header.innerHTML = `
-            <div class="calendar-nav">
-                <button id="prev-month">‹</button>
-                <h3 id="current-month"></h3>
-                <button id="next-month">›</button>
-            </div>
-            <div class="calendar-legend">
-                <span class="legend-item high">🔴 高確率</span>
-                <span class="legend-item medium">🟡 中確率</span>
-                <span class="legend-item low">🟢 低確率</span>
-            </div>
-        `;
-        
-        this.calendarContainer.appendChild(header);
-        
-        // ナビゲーションイベント
-        document.getElementById('prev-month').addEventListener('click', () => {
-            this.currentDate.setMonth(this.currentDate.getMonth() - 1);
-            this.renderCalendar();
-        });
-        
-        document.getElementById('next-month').addEventListener('click', () => {
-            this.currentDate.setMonth(this.currentDate.getMonth() + 1);
-            this.renderCalendar();
-        });
-    }
-    
-    renderCalendar() {
-        const year = this.currentDate.getFullYear();
-        const month = this.currentDate.getMonth();
-        const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-        
-        // 月表示更新
-        document.getElementById('current-month').textContent = 
-            `${year}年${month + 1}月`;
-        
-        // カレンダーグリッド
-        let calendarGrid = document.getElementById('calendar-grid');
-        if (calendarGrid) {
-            calendarGrid.remove();
-        }
-        
-        calendarGrid = document.createElement('div');
-        calendarGrid.id = 'calendar-grid';
-        calendarGrid.className = 'calendar-grid';
-        
-        // 曜日ヘッダー
-        const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
-        weekdays.forEach(day => {
-            const dayHeader = document.createElement('div');
-            dayHeader.className = 'calendar-day-header';
-            dayHeader.textContent = day;
-            calendarGrid.appendChild(dayHeader);
-        });
-        
-        // 日付セル
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const startDate = new Date(firstDay);
-        startDate.setDate(startDate.getDate() - firstDay.getDay());
-        
-        for (let i = 0; i < 42; i++) {
-            const cellDate = new Date(startDate);
-            cellDate.setDate(startDate.getDate() + i);
-            
-            const dayCell = this.createDayCell(cellDate, monthKey);
-            calendarGrid.appendChild(dayCell);
-        }
-        
-        this.calendarContainer.appendChild(calendarGrid);
-        
-        // 月の詳細情報
-        this.renderMonthDetails(monthKey);
-    }
-    
-    createDayCell(date, monthKey) {
-        const dayCell = document.createElement('div');
-        dayCell.className = 'calendar-day';
-        
-        const isCurrentMonth = date.getMonth() === this.currentDate.getMonth();
-        const isToday = this.isToday(date);
-        
-        if (!isCurrentMonth) {
-            dayCell.classList.add('other-month');
-        }
-        if (isToday) {
-            dayCell.classList.add('today');
-        }
-        
-        dayCell.innerHTML = `<span class="day-number">${date.getDate()}</span>`;
-        
-        // 予測データがある場合
-        const predictions = this.getPredictionsForDate(date);
-        if (predictions.length > 0) {
-            dayCell.classList.add('has-predictions');
-            
-            const indicator = document.createElement('div');
-            indicator.className = 'prediction-indicator';
-            
-            const highPriority = predictions.filter(p => p.recommendation_priority >= 0.7).length;
-            if (highPriority > 0) {
-                indicator.classList.add('high-priority');
-                indicator.innerHTML = '🔴';
-            } else {
-                indicator.classList.add('medium-priority');
-                indicator.innerHTML = '🟡';
-            }
-            
-            dayCell.appendChild(indicator);
-            
-            // クリックイベント
-            dayCell.addEventListener('click', () => {
-                this.showDayDetails(date, predictions);
+    /**
+     * 底部へスクロール
+     */
+    scrollToBottom() {
+        if (this.chatMessages && this.settings.autoScroll) {
+            requestAnimationFrame(() => {
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
             });
         }
-        
-        return dayCell;
     }
-    
-    getPredictionsForDate(date) {
-        const dateKey = date.toISOString().split('T')[0];
-        
-        // 全予測データから該当日のものを抽出
-        let dayPredictions = [];
-        
-        Object.values(this.predictions).forEach(monthData => {
-            if (monthData.opportunities) {
-                dayPredictions = dayPredictions.concat(
-                    monthData.opportunities.filter(pred => {
-                        const predDate = new Date(pred.predicted_date);
-                        return predDate.toISOString().split('T')[0] === dateKey;
-                    })
-                );
-            }
-        });
-        
-        return dayPredictions;
+
+    /**
+     * スクリーンリーダーへの通知
+     */
+    announceToScreenReader(message) {
+        const liveRegion = document.getElementById('chat-live-region');
+        if (liveRegion) {
+            liveRegion.textContent = message;
+            setTimeout(() => {
+                liveRegion.textContent = '';
+            }, 1000);
+        }
     }
-    
-    showDayDetails(date, predictions) {
-        const modal = document.createElement('div');
-        modal.className = 'prediction-modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>${date.toLocaleDateString('ja-JP')} の補助金予測</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    ${this.renderPredictionsList(predictions)}
-                </div>
+
+    /**
+     * 通知メッセージの表示
+     */
+    showMessage(message, type = 'info', duration = 5000) {
+        // トースト通知の作成
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-content">
+                <i class="fas fa-${this.getIconForType(type)}"></i>
+                <span>${message}</span>
             </div>
         `;
         
-        // モーダル表示
-        document.body.appendChild(modal);
-        
-        // 閉じるイベント
-        modal.querySelector('.modal-close').addEventListener('click', () => {
-            modal.remove();
-        });
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
-    }
-    
-    renderPredictionsList(predictions) {
-        if (predictions.length === 0) {
-            return '<p>この日の予測はありません。</p>';
+        // トーストコンテナがない場合は作成
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                pointer-events: none;
+            `;
+            document.body.appendChild(toastContainer);
         }
         
-        let html = '<div class="predictions-list">';
+        toastContainer.appendChild(toast);
         
-        predictions.forEach(pred => {
-            const confidenceClass = pred.confidence >= 0.8 ? 'high' : 
-                                  pred.confidence >= 0.6 ? 'medium' : 'low';
-            
-            html += `
-                <div class="prediction-item">
-                    <h4>${pred.subsidy_name}</h4>
-                    <div class="prediction-stats">
-                        <span class="confidence ${confidenceClass}">
-                            信頼度: ${Math.round(pred.confidence * 100)}%
-                        </span>
-                        <span class="success-rate">
-                            成功率: ${Math.round(pred.success_probability * 100)}%
-                        </span>
-                    </div>
-                    <div class="prediction-details">
-                        <p>💰 予算: ${pred.estimated_budget?.toLocaleString() || '未定'}万円</p>
-                        <p>📅 準備期限: ${new Date(pred.preparation_deadline).toLocaleDateString('ja-JP')}</p>
-                    </div>
-                </div>
-            `;
-        });
-        
-        html += '</div>';
-        return html;
+        // 自動削除
+        setTimeout(() => {
+            toast.remove();
+        }, duration);
     }
-    
-    showAlerts() {
-        const alertsContainer = document.getElementById('prediction-alerts');
-        if (!alertsContainer || this.alerts.length === 0) return;
-        
-        let alertsHtml = '<div class="alerts-header"><h3>🚨 重要なお知らせ</h3></div>';
-        
-        this.alerts.forEach(alert => {
-            const priorityIcon = alert.priority === 'high' ? '🔴' : 
-                               alert.priority === 'medium' ? '🟡' : '🟢';
-            
-            alertsHtml += `
-                <div class="alert-item ${alert.priority}">
-                    <div class="alert-header">
-                        ${priorityIcon} ${alert.message}
-                    </div>
-                    <div class="alert-action">
-                        ${alert.action_required}
-                    </div>
-                </div>
-            `;
-        });
-        
-        alertsContainer.innerHTML = alertsHtml;
+
+    /**
+     * タイプに応じたアイコンの取得
+     */
+    getIconForType(type) {
+        const icons = {
+            'info': 'info-circle',
+            'success': 'check-circle',
+            'warning': 'exclamation-triangle',
+            'error': 'times-circle'
+        };
+        return icons[type] || 'info-circle';
     }
-    
-    showTrends() {
-        const trendsContainer = document.getElementById('trends-analysis');
-        if (!trendsContainer || !this.trends) return;
-        
-        const trends = this.trends;
-        
-        let trendsHtml = `
-            <div class="trends-header">
-                <h3>📊 補助金トレンド分析</h3>
-            </div>
-            
-            <div class="trends-content">
-                <div class="trend-section">
-                    <h4>季節パターン</h4>
-                    <p>最も活発な月: ${trends.seasonal_patterns?.peak_months?.join('、') || '分析中'}</p>
-                </div>
-                
-                <div class="trend-section">
-                    <h4>新着チャンス</h4>
-                    <div class="emerging-opportunities">
-                        ${trends.emerging_opportunities?.map(opp => 
-                            `<span class="opportunity-tag">${opp}</span>`
-                        ).join('') || '分析中...'}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        trendsContainer.innerHTML = trendsHtml;
+
+    /**
+     * 設定の読み込み
+     */
+    loadSettings() {
+        try {
+            const savedSettings = localStorage.getItem('chatSettings');
+            if (savedSettings) {
+                this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
+            }
+        } catch (error) {
+            console.warn('Failed to load settings:', error);
+        }
     }
-    
-    isToday(date) {
-        const today = new Date();
-        return date.toDateString() === today.toDateString();
+
+    /**
+     * 設定の保存
+     */
+    saveSettings() {
+        try {
+            localStorage.setItem('chatSettings', JSON.stringify(this.settings));
+        } catch (error) {
+            console.warn('Failed to save settings:', error);
+        }
     }
-    
-    renderMonthDetails(monthKey) {
-        const monthData = this.predictions[monthKey];
-        if (!monthData) return;
+
+    /**
+     * 会話の保存
+     */
+    saveConversation() {
+        try {
+            const conversationData = {
+                sessionId: this.sessionId,
+                history: this.conversationHistory,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('lastConversation', JSON.stringify(conversationData));
+        } catch (error) {
+            console.warn('Failed to save conversation:', error);
+        }
+    }
+
+    /**
+     * ハートビートの開始
+     */
+    startHeartbeat() {
+        setInterval(() => {
+            this.updateConnectionStatus(navigator.onLine);
+        }, 30000); // 30秒ごと
+    }
+
+    /**
+     * クリーンアップ
+     */
+    destroy() {
+        if (this.typingTimer) {
+            clearTimeout(this.typingTimer);
+        }
         
-        const detailsContainer = document.getElementById('month-details');
-        if (!detailsContainer) return;
+        // イベントリスナーの削除
+        this.sendButton?.removeEventListener('click', this.sendMessage);
+        this.chatInput?.removeEventListener('keydown', this.handleKeyDown);
+        this.chatInput?.removeEventListener('input', this.autoResizeTextarea);
         
-        detailsContainer.innerHTML = `
-            <div class="month-summary">
-                <h4>${monthData.month} の予測サマリー</h4>
-                <div class="summary-stats">
-                    <div class="stat-item">
-                        <span class="stat-number">${monthData.total_opportunities}</span>
-                        <span class="stat-label">予測案件数</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">${monthData.high_priority_count}</span>
-                        <span class="stat-label">高優先度案件</span>
-                    </div>
-                </div>
-            </div>
-        `;
+        // 保存
+        this.saveSettings();
+        this.saveConversation();
     }
 }
 
-// 初期化
-document.addEventListener('DOMContentLoaded', function() {
-    // 強化チャット機能の初期化
-    if (document.getElementById('chat-input')) {
-        window.enhancedChat = new EnhancedChatInterface();
+/**
+ * クイックアクション用のグローバル関数
+ */
+function sendQuickMessage(message) {
+    if (window.chatInterface) {
+        window.chatInterface.chatInput.value = message;
+        window.chatInterface.sendMessage();
     }
-    
-    // 予測カレンダーの初期化
-    if (document.getElementById('prediction-calendar')) {
-        window.predictionCalendar = new SubsidyPredictionCalendar();
+}
+
+/**
+ * 設定変更用のグローバル関数
+ */
+function toggleChatSettings() {
+    if (window.chatInterface) {
+        const settings = window.chatInterface.settings;
+        settings.animationsEnabled = !settings.animationsEnabled;
+        window.chatInterface.saveSettings();
+        window.chatInterface.showMessage(
+            `アニメーション: ${settings.animationsEnabled ? 'ON' : 'OFF'}`, 
+            'info'
+        );
+    }
+}
+
+/**
+ * ページ読み込み時の初期化
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        window.chatInterface = new EnhancedChatInterface();
+        
+        // グローバルエラーハンドラ
+        window.addEventListener('error', (e) => {
+            console.error('Global error:', e);
+            if (window.chatInterface) {
+                window.chatInterface.showMessage('予期しないエラーが発生しました', 'error');
+            }
+        });
+        
+        // Unhandled promise rejection
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('Unhandled promise rejection:', e);
+            if (window.chatInterface) {
+                window.chatInterface.showMessage('ネットワークエラーが発生しました', 'error');
+            }
+        });
+        
+    } catch (error) {
+        console.error('Failed to initialize chat interface:', error);
+    }
+});
+
+/**
+ * ページアンロード時のクリーンアップ
+ */
+window.addEventListener('beforeunload', function() {
+    if (window.chatInterface) {
+        window.chatInterface.destroy();
     }
 });

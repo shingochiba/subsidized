@@ -102,3 +102,28 @@ REST_FRAMEWORK = {
 # デバッグ用：設定値を確認
 print(f"DEBUG: DIFY_API_URL = {DIFY_API_URL}")
 print(f"DEBUG: DIFY_API_KEY = {DIFY_API_KEY[:10]}..." if DIFY_API_KEY else "DEBUG: DIFY_API_KEY = (empty)")
+
+
+# 認証関連の設定
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/accounts/logout/'  # ログアウト完了ページを表示
+
+# セッション設定
+SESSION_COOKIE_AGE = 3600  # 1時間でセッション期限切れ
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # ブラウザを閉じるとセッション削除
+SESSION_SAVE_EVERY_REQUEST = True  # リクエストごとにセッション期限をリセット
+
+# CSRF設定
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_COOKIE_AGE = 31449600  # 1年
+CSRF_COOKIE_SECURE = False  # 開発環境ではFalse（本番環境ではTrue）
+CSRF_COOKIE_HTTPONLY = False  # JavaScriptからアクセス可能
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_USE_SESSIONS = False
+CSRF_TRUSTED_ORIGINS = []  # 必要に応じて信頼できるオリジンを追加
+
+# セキュリティ設定
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
