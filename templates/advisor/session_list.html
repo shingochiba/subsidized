@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>セッション一覧 - 補助金アドバイザー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .actions-section {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            max-width: 500px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .session-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .session-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .session-table th,
+        .session-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .session-table th {
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .session-table tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        .session-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .session-id {
+            font-family: monospace;
+            font-size: 0.85rem;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            word-break: break-all;
+        }
+
+        .session-preview {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #6c757d;
+        }
+
+        .message-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .user-count {
+            background: #d4edda;
+            color: #155724;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .assistant-count {
+            background: #d1ecf1;
+            color: #004085;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .duration {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+
+        .action-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-link {
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .debug-link {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .debug-link:hover {
+            background: #1976d2;
+            color: white;
+        }
+
+        .delete-link {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .delete-link:hover {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .no-sessions {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .no-sessions .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .page-link {
+            padding: 8px 15px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #667eea;
+            transition: all 0.2s ease;
+        }
+
+        .page-link:hover,
+        .page-link.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .actions-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                min-width: unset;
+                max-width: unset;
+            }
+
+            .action-buttons {
+                justify-content: center;
+            }
+
+            .session-table {
+                font-size: 0.85rem;
+            }
+
+            .session-table th,
+            .session-table td {
+                padding: 10px 8px;
+            }
+
+            .session-preview {
+                max-width: 200px;
+            }
+
+            .action-links {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .session-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 セッション一覧</h1>
+            <p>会話セッションの管理・分析ツール</p>
+        </div>
+
+        <div class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{ total_sessions }}</div>
+                    <div class="stat-label">総セッション数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalMessages">0</div>
+                    <div class="stat-label">総メッセージ数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="activeToday">0</div>
+                    <div class="stat-label">今日のセッション</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avgDuration">-</div>
+                    <div class="stat-label">平均会話時間</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="セッションIDまたは内容で検索...">
+            </div>
+            <div class="action-buttons">
+                <a href="/advisor/enhanced-chat/" class="btn btn-success">
+                    ➕ 新しいチャット
+                </a>
+                <a href="/advisor/debug/history/" class="btn">
+                    🔍 履歴デバッグ
+                </a>
+                <button class="btn btn-danger" onclick="confirmClearAll()">
+                    🗑️ 全削除
+                </button>
+            </div>
+        </div>
+
+        <div class="content">
+            {% if sessions %}
+                <div class="table-container">
+                    <table class="session-table" id="sessionTable">
+                        <thead>
+                            <tr>
+                                <th>セッションID</th>
+                                <th>会話プレビュー</th>
+                                <th>メッセージ数</th>
+                                <th>会話時間</th>
+                                <th>最終更新</th>
+                                <th>アクション</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in sessions %}
+                            <tr class="session-row" data-session-id="{{ session.session_id }}">
+                                <td>
+                                    <div class="session-id">{{ session.session_id }}</div>
+                                </td>
+                                <td>
+                                    <div class="session-preview" title="{{ session.preview }}">
+                                        {{ session.preview }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="message-count">
+                                        <span class="user-count">👤 {{ session.user_messages }}</span>
+                                        <span class="assistant-count">🤖 {{ session.assistant_messages }}</span>
+                                        <small>(計{{ session.message_count }}件)</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="duration">
+                                        {% if session.duration_minutes > 0 %}
+                                            {{ session.duration_minutes }}分
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="timestamp">
+                                        {{ session.last_message_time|date:"m/d H:i" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="action-links">
+                                        <a href="{{ session.debug_url }}" class="action-link debug-link">
+                                            🔍 詳細
+                                        </a>
+                                        <a href="#" class="action-link delete-link" onclick="confirmDeleteSession('{{ session.session_id }}')">
+                                            🗑️ 削除
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- ページネーション（将来の機能拡張用） -->
+                <div class="pagination">
+                    <a href="#" class="page-link">« 前へ</a>
+                    <a href="#" class="page-link active">1</a>
+                    <a href="#" class="page-link">2</a>
+                    <a href="#" class="page-link">3</a>
+                    <a href="#" class="page-link">次へ »</a>
+                </div>
+
+            {% else %}
+                <div class="no-sessions">
+                    <div class="icon">💬</div>
+                    <h3>セッションがありません</h3>
+                    <p>まだ会話セッションが作成されていません</p>
+                    <br>
+                    <a href="/advisor/enhanced-chat/" class="btn btn-success">
+                        最初のチャットを開始
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // 検索機能
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('.session-row');
+
+            rows.forEach(row => {
+                const sessionId = row.querySelector('.session-id').textContent.toLowerCase();
+                const preview = row.querySelector('.session-preview').textContent.toLowerCase();
+                
+                if (sessionId.includes(searchTerm) || preview.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+
+        // 統計の計算
+        function calculateStats() {
+            const rows = document.querySelectorAll('.session-row');
+            let totalMessages = 0;
+            let activeToday = 0;
+            let totalDuration = 0;
+            let durationsCount = 0;
+
+            const today = new Date().toDateString();
+
+            rows.forEach(row => {
+                // メッセージ数の合計
+                const messageCount = parseInt(row.querySelector('.message-count small').textContent.match(/\d+/)[0]);
+                totalMessages += messageCount;
+
+                // 今日のセッション数
+                const timestamp = row.querySelector('.timestamp').textContent;
+                // 簡単な日付チェック（実際の実装ではより正確な比較が必要）
+                if (timestamp.includes(new Date().getDate().toString())) {
+                    activeToday++;
+                }
+
+                // 会話時間の平均
+                const durationText = row.querySelector('.duration').textContent;
+                if (durationText !== '-') {
+                    const duration = parseInt(durationText);
+                    if (!isNaN(duration)) {
+                        totalDuration += duration;
+                        durationsCount++;
+                    }
+                }
+            });
+
+            // 統計を更新
+            document.getElementById('totalMessages').textContent = totalMessages.toLocaleString();
+            document.getElementById('activeToday').textContent = activeToday;
+            
+            const avgDuration = durationsCount > 0 ? Math.round(totalDuration / durationsCount) : 0;
+            document.getElementById('avgDuration').textContent = avgDuration > 0 ? `${avgDuration}分` : '-';
+        }
+
+        // セッション削除の確認
+        function confirmDeleteSession(sessionId) {
+            if (confirm(`セッション "${sessionId}" を削除しますか？\n\nこの操作は取り消せません。`)) {
+                deleteSession(sessionId);
+            }
+        }
+
+        // セッション削除の実行
+        async function deleteSession(sessionId) {
+            try {
+                const response = await fetch(`/advisor/api/delete-session/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+
+                if (response.ok) {
+                    // セッション行を削除
+                    const row = document.querySelector(`[data-session-id="${sessionId}"]`);
+                    if (row) {
+                        row.remove();
+                        showAlert('セッションが削除されました', 'success');
+                        calculateStats();
+                    }
+                } else {
+                    throw new Error('削除に失敗しました');
+                }
+            } catch (error) {
+                showAlert(`削除エラー: ${error.message}`, 'danger');
+            }
+        }
+
+        // 全削除の確認
+        function confirmClearAll() {
+            if (confirm('すべてのセッションを削除しますか？\n\nこの操作は取り消せません。')) {
+                if (confirm('本当に削除しますか？データは完全に失われます。')) {
+                    clearAllSessions();
+                }
+            }
+        }
+
+        // 全セッション削除
+        async function clearAllSessions() {
+            try {
+                const response = await fetch('/advisor/api/clear-all-sessions/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    throw new Error('削除に失敗しました');
+                }
+            } catch (error) {
+                showAlert(`削除エラー: ${error.message}`, 'danger');
+            }
+        }
+
+        // アラート表示
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            const content = document.querySelector('.content');
+            content.insertBefore(alertDiv, content.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // CSRFトークン取得
+        function getCsrfToken() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            return '';
+        }
+
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            calculateStats();
+        });
+    </script>
+</body>
+</html>

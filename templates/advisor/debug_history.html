@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会話履歴デバッグ - 補助金アドバイザー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .session-input {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group input {
+            flex: 1;
+            min-width: 300px;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .stats-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .no-data .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .message-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .message-item.user {
+            border-left-color: #28a745;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+
+        .message-item.assistant {
+            border-left-color: #007bff;
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .message-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .message-type.user {
+            color: #155724;
+        }
+
+        .message-type.assistant {
+            color: #004085;
+        }
+
+        .message-id {
+            background: rgba(0,0,0,0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+
+        .message-timestamp {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-left: auto;
+        }
+
+        .message-content {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            line-height: 1.6;
+            font-size: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message-meta {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .meta-item {
+            background: rgba(255,255,255,0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .meta-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .meta-value {
+            color: #6c757d;
+            font-family: monospace;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #f5c6cb;
+            margin: 20px 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .export-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            margin: 0 10px;
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+            margin: 0 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .input-group input {
+                min-width: unset;
+                width: 100%;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .message-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .message-timestamp {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 会話履歴デバッグ</h1>
+            <p>セッション別会話履歴の詳細表示・分析ツール</p>
+        </div>
+
+        <div class="session-input">
+            <div class="input-group">
+                <input type="text" id="sessionInput" placeholder="セッションIDを入力してください (例: chat_1752823077502_705wp1y0y)">
+                <button class="btn" onclick="loadHistory()">📊 履歴を取得</button>
+            </div>
+        </div>
+
+        <div id="statsSection" class="stats-section" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalMessages">0</div>
+                    <div class="stat-label">総メッセージ数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="userMessages">0</div>
+                    <div class="stat-label">ユーザーメッセージ</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="assistantMessages">0</div>
+                    <div class="stat-label">アシスタント回答</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="sessionDuration">-</div>
+                    <div class="stat-label">会話時間</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="loadingIndicator" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>会話履歴を取得中...</p>
+            </div>
+
+            <div id="noDataMessage" class="no-data">
+                <div class="icon">💬</div>
+                <h3>会話履歴を表示</h3>
+                <p>上記にセッションIDを入力して「履歴を取得」ボタンをクリックしてください</p>
+            </div>
+
+            <div id="errorMessage" style="display: none;"></div>
+            
+            <div id="historyContainer" style="display: none;">
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </div>
+
+        <div id="exportSection" class="export-section" style="display: none;">
+            <button class="btn export-btn" onclick="exportHistory()">📥 JSONエクスポート</button>
+            <button class="btn export-btn" onclick="exportCSV()">📊 CSVエクスポート</button>
+            <button class="btn clear-btn" onclick="clearHistory()">🗑️ 表示クリア</button>
+        </div>
+    </div>
+
+    <script>
+        let currentHistoryData = null;
+
+        // ページ読み込み時に URL パラメータをチェック
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session_id');
+            
+            if (sessionId) {
+                document.getElementById('sessionInput').value = sessionId;
+                loadHistory();
+            }
+        });
+
+        // Enterキーでの履歴取得
+        document.getElementById('sessionInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                loadHistory();
+            }
+        });
+
+        async function loadHistory() {
+            const sessionId = document.getElementById('sessionInput').value.trim();
+            
+            if (!sessionId) {
+                showError('セッションIDを入力してください');
+                return;
+            }
+
+            showLoading(true);
+            hideError();
+            hideNoData();
+
+            try {
+                const response = await fetch(`/advisor/api/debug-history/?session_id=${encodeURIComponent(sessionId)}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'サーバーエラーが発生しました');
+                }
+
+                currentHistoryData = data;
+                displayHistory(data);
+                updateStats(data);
+                
+            } catch (error) {
+                console.error('Error loading history:', error);
+                showError(`履歴の取得に失敗しました: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displayHistory(data) {
+            const container = document.getElementById('historyList');
+            container.innerHTML = '';
+
+            if (!data.history || data.history.length === 0) {
+                showNoDataWithMessage('このセッションの会話履歴が見つかりません');
+                return;
+            }
+
+            data.history.forEach((message, index) => {
+                const messageElement = createMessageElement(message, index);
+                container.appendChild(messageElement);
+            });
+
+            document.getElementById('historyContainer').style.display = 'block';
+            document.getElementById('statsSection').style.display = 'block';
+            document.getElementById('exportSection').style.display = 'block';
+        }
+
+        function createMessageElement(message, index) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-item ${message.message_type}`;
+
+            const timestamp = new Date(message.timestamp).toLocaleString('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            const typeIcon = message.message_type === 'user' ? '👤' : '🤖';
+            const typeLabel = message.message_type === 'user' ? 'ユーザー' : 'アシスタント';
+
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="message-type ${message.message_type}">
+                        ${typeIcon} ${typeLabel}
+                    </div>
+                    <div class="message-id">ID: ${message.id}</div>
+                    <div class="message-timestamp">${timestamp}</div>
+                </div>
+                <div class="message-content">${escapeHtml(message.content)}</div>
+                <div class="message-meta">
+                    <div class="meta-item">
+                        <div class="meta-label">セッションID</div>
+                        <div class="meta-value">${message.session_id}</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">メッセージ番号</div>
+                        <div class="meta-value">#${index + 1}</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">文字数</div>
+                        <div class="meta-value">${message.content.length}文字</div>
+                    </div>
+                    ${message.user_context ? `
+                    <div class="meta-item">
+                        <div class="meta-label">ユーザーコンテキスト</div>
+                        <div class="meta-value">${JSON.stringify(message.user_context)}</div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            return messageDiv;
+        }
+
+        function updateStats(data) {
+            const userMessages = data.history.filter(m => m.message_type === 'user').length;
+            const assistantMessages = data.history.filter(m => m.message_type === 'assistant').length;
+            
+            document.getElementById('totalMessages').textContent = data.total_messages;
+            document.getElementById('userMessages').textContent = userMessages;
+            document.getElementById('assistantMessages').textContent = assistantMessages;
+
+            // 会話時間の計算
+            if (data.history.length > 1) {
+                const firstMessage = new Date(data.history[0].timestamp);
+                const lastMessage = new Date(data.history[data.history.length - 1].timestamp);
+                const duration = Math.round((lastMessage - firstMessage) / 1000 / 60); // 分
+                document.getElementById('sessionDuration').textContent = `${duration}分`;
+            } else {
+                document.getElementById('sessionDuration').textContent = '-';
+            }
+        }
+
+        function exportHistory() {
+            if (!currentHistoryData) {
+                showError('エクスポートする履歴データがありません');
+                return;
+            }
+
+            const dataStr = JSON.stringify(currentHistoryData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `conversation_history_${currentHistoryData.session_id}.json`;
+            link.click();
+        }
+
+        function exportCSV() {
+            if (!currentHistoryData) {
+                showError('エクスポートする履歴データがありません');
+                return;
+            }
+
+            const headers = ['ID', 'セッションID', 'メッセージタイプ', 'タイムスタンプ', '内容', '文字数'];
+            const csvData = [headers];
+
+            currentHistoryData.history.forEach(message => {
+                csvData.push([
+                    message.id,
+                    message.session_id,
+                    message.message_type,
+                    message.timestamp,
+                    message.content.replace(/"/g, '""'), // CSVエスケープ
+                    message.content.length
+                ]);
+            });
+
+            const csvString = csvData.map(row => 
+                row.map(field => `"${field}"`).join(',')
+            ).join('\n');
+
+            const dataBlob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `conversation_history_${currentHistoryData.session_id}.csv`;
+            link.click();
+        }
+
+        function clearHistory() {
+            document.getElementById('historyContainer').style.display = 'none';
+            document.getElementById('statsSection').style.display = 'none';
+            document.getElementById('exportSection').style.display = 'none';
+            document.getElementById('sessionInput').value = '';
+            currentHistoryData = null;
+            showNoData();
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.innerHTML = `<div class="error-message">❌ ${escapeHtml(message)}</div>`;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function showNoData() {
+            document.getElementById('noDataMessage').style.display = 'block';
+        }
+
+        function hideNoData() {
+            document.getElementById('noDataMessage').style.display = 'none';
+        }
+
+        function showNoDataWithMessage(message) {
+            const noDataDiv = document.getElementById('noDataMessage');
+            noDataDiv.innerHTML = `
+                <div class="icon">📭</div>
+                <h3>履歴なし</h3>
+                <p>${escapeHtml(message)}</p>
+            `;
+            noDataDiv.style.display = 'block';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

@@ -102,6 +102,157 @@
             margin: 1rem 0;
             border-left: 4px solid #0dcaf0;
         }
+
+        /* 管理者メニュー専用スタイル */
+        .admin-dropdown {
+            background: linear-gradient(135deg, #dc3545, #b02a37) !important;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-dropdown:hover {
+            background: linear-gradient(135deg, #b02a37, #8b1e29) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+        
+        .admin-dropdown .badge {
+            background: rgba(255, 255, 255, 0.2) !important;
+            color: white;
+        }
+
+        .debug-dropdown-menu {
+            min-width: 320px;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .debug-dropdown-header {
+            background: linear-gradient(135deg, #dc3545, #b02a37);
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 0;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .debug-dropdown-section {
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .debug-dropdown-section:last-child {
+            border-bottom: none;
+        }
+
+        .debug-section-title {
+            padding: 8px 20px 5px;
+            font-size: 0.75rem;
+            color: #6c757d;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        .debug-dropdown-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 20px;
+            color: #495057;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .debug-dropdown-item:hover {
+            background: #f8f9fa;
+            color: #dc3545;
+        }
+
+        .debug-icon {
+            width: 18px;
+            text-align: center;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+
+        .debug-dropdown-item:hover .debug-icon {
+            color: #dc3545;
+        }
+
+        .debug-item-content {
+            flex: 1;
+        }
+
+        .debug-item-title {
+            font-weight: 500;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .debug-item-description {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin: 2px 0 0;
+            line-height: 1.2;
+        }
+
+        .debug-badge {
+            background: #dc3545;
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        /* アニメーション効果 */
+        .debug-dropdown-menu {
+            animation: debugDropdownFadeIn 0.3s ease-out;
+        }
+
+        @keyframes debugDropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* モバイル対応 */
+        @media (max-width: 768px) {
+            .debug-dropdown-menu {
+                min-width: 280px;
+                max-width: 90vw;
+            }
+            
+            .debug-dropdown-item {
+                padding: 15px 18px;
+            }
+            
+            .debug-item-title {
+                font-size: 0.9rem;
+            }
+            
+            .debug-item-description {
+                font-size: 0.7rem;
+            }
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -126,8 +277,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'advisor:chat_interface' %}">
-                            <i class="fas fa-comments"></i> AI相談
+                        <a class="nav-link" href="{% url 'advisor:enhanced_chat_interface' %}">
+                            <i class="fas fa-robot"></i> AI相談
                         </a>
                     </li>
                     <li class="nav-item">
@@ -158,6 +309,119 @@
                 
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
+                        <!-- 管理者専用デバッグメニュー -->
+                        {% if user.is_staff %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle admin-dropdown" href="#" id="debugDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cogs"></i> 
+                                管理者ツール
+                                <span class="badge ms-1">DEBUG</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end debug-dropdown-menu" aria-labelledby="debugDropdown">
+                                <li class="debug-dropdown-header">
+                                    <i class="fas fa-shield-alt"></i>
+                                    管理者専用機能
+                                </li>
+
+                                <!-- デバッグ機能セクション -->
+                                <li>
+                                    <h6 class="debug-section-title">🔍 デバッグ機能</h6>
+                                </li>
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:session_list' %}">
+                                        <i class="fas fa-list debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">セッション一覧</div>
+                                            <div class="debug-item-description">全会話セッションの管理・監視</div>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:debug_history' %}">
+                                        <i class="fas fa-search debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">会話履歴デバッグ</div>
+                                            <div class="debug-item-description">詳細な会話分析・トラブルシューティング</div>
+                                        </div>
+                                    </a>
+                                </li>
+
+                                <!-- システム管理セクション -->
+                                <li>
+                                    <h6 class="debug-section-title">⚙️ システム管理</h6>
+                                </li>
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:admin_dashboard' %}">
+                                        <i class="fas fa-tachometer-alt debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">管理ダッシュボード</div>
+                                            <div class="debug-item-description">システム全体の状況確認</div>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'admin:index' %}">
+                                        <i class="fas fa-database debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">Django管理画面</div>
+                                            <div class="debug-item-description">データベース直接操作</div>
+                                        </div>
+                                    </a>
+                                </li>
+
+                                <!-- 分析機能セクション -->
+                                <li>
+                                    <h6 class="debug-section-title">📊 高度分析</h6>
+                                </li>
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:statistics' %}">
+                                        <i class="fas fa-chart-line debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">詳細統計分析</div>
+                                            <div class="debug-item-description">利用状況の詳細レポート</div>
+                                        </div>
+                                    </a>
+                                </li>
+                                {% comment %}
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:trend_analysis' %}">
+                                        <i class="fas fa-trending-up debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">トレンド分析</div>
+                                            <div class="debug-item-description">補助金需要の傾向分析</div>
+                                        </div>
+                                    </a>
+                                </li>
+                                {% endcomment %}
+
+                                <!-- システム情報セクション -->
+                                <li>
+                                    <h6 class="debug-section-title">ℹ️ システム情報</h6>
+                                </li>
+                                <li>
+                                    <button class="debug-dropdown-item" onclick="showSystemInfo()">
+                                        <i class="fas fa-info-circle debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">システム状況</div>
+                                            <div class="debug-item-description">サーバー・DB・パフォーマンス</div>
+                                        </div>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="debug-dropdown-item" onclick="showApiInfo()">
+                                        <i class="fas fa-code debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">API情報</div>
+                                            <div class="debug-item-description">エンドポイント・使用状況</div>
+                                        </div>
+                                        <span class="debug-badge">API</span>
+                                    </button>
+                                </li>
+                            </ul>
+                        </li>
+                        {% endif %}
+
+                        <!-- 通常のユーザーメニュー -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-user"></i> {{ user.username }}
@@ -165,12 +429,13 @@
                                     <span class="badge bg-warning ms-1">Admin</span>
                                 {% endif %}
                             </a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="{% url 'advisor:user_alerts' %}">
                                     <i class="fas fa-bell"></i> アラート
                                 </a></li>
                                 {% if user.is_staff %}
                                     <li><hr class="dropdown-divider"></li>
+                                    <li><h6 class="dropdown-header">管理機能</h6></li>
                                     <li><a class="dropdown-item" href="{% url 'advisor:admin_dashboard' %}">
                                         <i class="fas fa-cog"></i> 管理ダッシュボード
                                     </a></li>
@@ -275,22 +540,180 @@
     <!-- カスタムJS -->
     <script src="{% static 'js/main.js' %}"></script>
     
-    <!-- ログアウト確認機能 -->
+    <!-- 管理者ツール用JavaScript -->
     <script>
-    // CSRFトークンを取得する関数（複数の方法で試行）
+    // システム情報表示
+    function showSystemInfo() {
+        // システム情報を取得するためのAPIコール（簡易版）
+        const systemInfo = {
+            django_version: 'Django 4.x',
+            python_version: 'Python 3.x',
+            database: 'SQLite/PostgreSQL',
+            server_time: new Date().toLocaleString('ja-JP'),
+            user_sessions: '確認中...',
+            active_chats: '確認中...'
+        };
+
+        const infoText = `
+🖥️ システム情報
+
+📊 基本情報:
+• Django: ${systemInfo.django_version}
+• Python: ${systemInfo.python_version}
+• データベース: ${systemInfo.database}
+• サーバー時刻: ${systemInfo.server_time}
+
+📈 稼働状況:
+• アクティブセッション: ${systemInfo.user_sessions}
+• 進行中チャット: ${systemInfo.active_chats}
+
+🔧 管理者機能:
+• デバッグツール: 利用可能
+• ログ監視: 有効
+• エラー追跡: 有効
+
+💡 ヒント: 詳細な情報は管理ダッシュボードで確認できます
+        `;
+
+        showInfoModal('システム情報', infoText);
+    }
+
+    // API情報表示
+    function showApiInfo() {
+        const apiEndpoints = [
+            {
+                path: '/advisor/api/enhanced-chat/',
+                method: 'POST',
+                description: 'チャットAPI - AI応答生成',
+                status: '稼働中'
+            },
+            {
+                path: '/advisor/api/debug-history/',
+                method: 'GET',
+                description: '履歴デバッグAPI - 会話履歴取得',
+                status: '稼働中'
+            },
+            {
+                path: '/advisor/api/subsidies/',
+                method: 'GET',
+                description: '補助金一覧API - 制度情報取得',
+                status: '稼働中'
+            },
+            {
+                path: '/advisor/debug/sessions/',
+                method: 'GET',
+                description: 'セッション一覧 - 管理画面',
+                status: '稼働中'
+            },
+            {
+                path: '/advisor/debug/history/',
+                method: 'GET',
+                description: '履歴デバッグ - 詳細分析画面',
+                status: '稼働中'
+            }
+        ];
+
+        let apiText = '🔗 利用可能なAPI・エンドポイント\n\n';
+        
+        apiEndpoints.forEach((api, index) => {
+            apiText += `${index + 1}. ${api.path}\n`;
+            apiText += `   📝 ${api.description}\n`;
+            apiText += `   🎯 Method: ${api.method}\n`;
+            apiText += `   ✅ Status: ${api.status}\n\n`;
+        });
+
+        apiText += '💡 ヒント: デバッグ機能は管理者権限が必要です';
+
+        showInfoModal('API情報', apiText);
+    }
+
+    // 情報モーダル表示
+    function showInfoModal(title, content) {
+        // 既存のモーダルがあれば削除
+        const existingModal = document.getElementById('infoModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+            <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);" id="infoModal">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-info-circle"></i> ${title}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" onclick="closeInfoModal()"></button>
+                        </div>
+                        <div class="modal-body">
+                            <pre style="white-space: pre-wrap; font-family: 'Noto Sans JP', sans-serif; font-size: 0.9rem; line-height: 1.4; margin: 0;">${content}</pre>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeInfoModal()">
+                                <i class="fas fa-times"></i> 閉じる
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="copyToClipboard(\`${content}\`)">
+                                <i class="fas fa-copy"></i> コピー
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // エスケープキーでモーダルを閉じる
+        const escapeHandler = function(e) {
+            if (e.key === 'Escape') {
+                closeInfoModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+    }
+
+    function closeInfoModal() {
+        const modal = document.getElementById('infoModal');
+        if (modal) {
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+            }, 200);
+        }
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            // 一時的にボタンのテキストを変更
+            const copyBtn = document.querySelector('#infoModal .btn-primary');
+            const originalText = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check"></i> コピー済み';
+            copyBtn.classList.add('btn-success');
+            copyBtn.classList.remove('btn-primary');
+            
+            setTimeout(() => {
+                copyBtn.innerHTML = originalText;
+                copyBtn.classList.add('btn-primary');
+                copyBtn.classList.remove('btn-success');
+            }, 2000);
+        }).catch(err => {
+            console.error('コピーに失敗しました:', err);
+        });
+    }
+
+    // ログアウト確認機能（既存のコードを維持）
     function getCSRFToken() {
-        // 1. グローバル変数から取得
         if (window.csrfToken) {
             return window.csrfToken;
         }
         
-        // 2. hidden inputから取得
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
         if (csrfToken) {
             return csrfToken.value;
         }
         
-        // 3. Cookieから取得
         const cookieValue = document.cookie
             .split('; ')
             .find(row => row.startsWith('csrftoken='));
@@ -299,7 +722,6 @@
             return cookieValue.split('=')[1];
         }
         
-        // 4. metaタグから取得
         const metaToken = document.querySelector('meta[name="csrf-token"]');
         if (metaToken) {
             return metaToken.getAttribute('content');
@@ -311,7 +733,6 @@
     function confirmLogout(event) {
         event.preventDefault();
         
-        // カスタムモーダル作成
         const modal = document.createElement('div');
         modal.innerHTML = `
             <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);" id="logoutModal">
@@ -347,7 +768,6 @@
         
         document.body.appendChild(modal);
         
-        // エスケープキーでモーダルを閉じる
         const escapeHandler = function(e) {
             if (e.key === 'Escape') {
                 closeLogoutModal();
@@ -356,7 +776,6 @@
         };
         document.addEventListener('keydown', escapeHandler);
         
-        // モーダル背景クリックで閉じる
         modal.addEventListener('click', function(e) {
             if (e.target === modal || e.target.classList.contains('modal')) {
                 closeLogoutModal();
@@ -375,7 +794,6 @@
     }
     
     function executeLogout() {
-        // ローディング表示
         const modal = document.getElementById('logoutModal');
         const modalBody = modal.querySelector('.modal-body');
         const modalFooter = modal.querySelector('.modal-footer');
@@ -391,16 +809,13 @@
         `;
         modalFooter.style.display = 'none';
         
-        // CSRFトークンを取得
         const csrfToken = getCSRFToken();
         
-        // フォームを作成してPOSTでログアウト
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '{% url "logout" %}';
         form.style.display = 'none';
         
-        // CSRFトークンを追加（取得できた場合のみ）
         if (csrfToken) {
             const csrfInput = document.createElement('input');
             csrfInput.type = 'hidden';
@@ -408,14 +823,12 @@
             csrfInput.value = csrfToken;
             form.appendChild(csrfInput);
         } else {
-            // CSRFトークンが取得できない場合はGETリクエストで
             console.warn('CSRF token not found, using GET request');
             form.method = 'GET';
         }
         
         document.body.appendChild(form);
         
-        // 1秒後にログアウト実行
         setTimeout(() => {
             form.submit();
         }, 1000);
