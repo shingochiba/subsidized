@@ -1,0 +1,73 @@
+<!-- templates/advisor/debug_info.html -->
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-bug me-2"></i>{{ page_title }}
+            </h1>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>システム環境</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Python バージョン:</strong><br>{{ python_version }}</p>
+                    <p><strong>Django バージョン:</strong><br>{{ django_version }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>機能ステータス</h5>
+                </div>
+                <div class="card-body">
+                    <p>
+                        <strong>新しいモデル:</strong>
+                        {% if new_models_available %}
+                            <span class="badge bg-success">利用可能</span>
+                        {% else %}
+                            <span class="badge bg-warning">未利用</span>
+                        {% endif %}
+                    </p>
+                    <p>
+                        <strong>拡張サービス:</strong>
+                        {% if enhanced_services_available %}
+                            <span class="badge bg-success">利用可能</span>
+                        {% else %}
+                            <span class="badge bg-warning">未利用</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle me-2"></i>利用可能なURL</h6>
+                <ul>
+                    <li><a href="{% url 'advisor:index' %}">ホーム</a></li>
+                    <li><a href="{% url 'advisor:chat_interface' %}">チャット</a></li>
+                    <li><a href="{% url 'advisor:enhanced_chat_interface' %}">拡張チャット</a></li>
+                    <li><a href="{% url 'advisor:subsidy_list' %}">補助金一覧</a></li>
+                    <li><a href="{% url 'advisor:statistics_dashboard' %}">統計ダッシュボード</a></li>
+                    <li><a href="{% url 'advisor:prediction_dashboard' %}">予測ダッシュボード</a></li>
+                    <li><a href="{% url 'advisor:admin_dashboard' %}">管理ダッシュボード</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

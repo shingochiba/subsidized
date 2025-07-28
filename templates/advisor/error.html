@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}エラー{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="alert alert-danger text-center">
+                <h4><i class="fas fa-exclamation-triangle me-2"></i>エラーが発生しました</h4>
+                <p>{{ error }}</p>
+                <a href="{% url 'advisor:index' %}" class="btn btn-primary">
+                    <i class="fas fa-home me-1"></i>ホームに戻る
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

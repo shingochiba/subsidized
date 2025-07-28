@@ -1,0 +1,1042 @@
+<!-- templates/advisor/prediction_calendar.html アイコン対応修正版 -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.calendar-container {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.calendar-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.nav-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.nav-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: #f8f9fa;
+    border: none;
+}
+
+.calendar-day-header {
+    background: #495057;
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-right: 1px solid #dee2e6;
+}
+
+.calendar-day-header:last-child {
+    border-right: none;
+}
+
+.calendar-day {
+    min-height: 140px;
+    max-height: 140px;
+    background: white;
+    border: 1px solid #e9ecef;
+    padding: 0.5rem;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.calendar-day:hover {
+    background: #f8f9fa;
+}
+
+.calendar-day.other-month {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.calendar-day.today {
+    background: #e3f2fd;
+    border-color: #2196f3;
+    border-width: 2px;
+}
+
+.day-number {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.calendar-day.other-month .day-number {
+    color: #adb5bd;
+}
+
+.calendar-day.today .day-number {
+    color: #1976d2;
+    background: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+}
+
+.day-events {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    overflow: hidden;
+}
+
+.event-item {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem 0.2rem 0.2rem;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.event-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
+    position: relative;
+}
+
+/* イベントアイコン */
+.event-icon {
+    font-size: 0.6rem;
+    width: 12px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.event-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* イベント種別ごとの色とアイコン設定 */
+.event-announcement { 
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border-left: 3px solid #1e7e34;
+}
+
+.event-deadline { 
+    background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%);
+    border-left: 3px solid #bd2130;
+}
+
+.event-result { 
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border-left: 3px solid #004085;
+}
+
+.event-extension { 
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+    color: #212529;
+    border-left: 3px solid #d39e00;
+}
+
+.event-info_session { 
+    background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+    border-left: 3px solid #4c2a85;
+}
+
+/* 信頼度インジケーター（パターンで区別） */
+.confidence-indicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    border: 1px solid rgba(255,255,255,0.8);
+    border-radius: 2px;
+}
+
+/* 信頼度レベルをパターンで表現 */
+.confidence-high { 
+    background: #ffffff;
+    border: 2px solid #28a745;
+}
+
+.confidence-medium { 
+    background: repeating-linear-gradient(
+        45deg,
+        #ffffff,
+        #ffffff 2px,
+        #ffc107 2px,
+        #ffc107 4px
+    );
+    border: 1px solid #e0a800;
+}
+
+.confidence-low { 
+    background: #dc3545;
+    border: 2px solid #ffffff;
+    position: relative;
+}
+
+.confidence-low::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 1px;
+    background: white;
+    transform: translate(-50%, -50%);
+}
+
+/* イベント数制限とオーバーフロー表示 */
+.day-events .event-item:nth-child(n+4) {
+    display: none;
+}
+
+.events-overflow {
+    font-size: 0.6rem;
+    color: #6c757d;
+    text-align: center;
+    padding: 0.1rem;
+    background: #e9ecef;
+    border-radius: 2px;
+    margin-top: 0.1rem;
+    border: 1px solid #ced4da;
+}
+
+.stats-sidebar {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+}
+
+.legend-color {
+    width: 20px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.legend-icon {
+    font-size: 0.7rem;
+    color: white;
+}
+
+/* 信頼度レジェンド用のスタイル */
+.legend-confidence {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    position: relative;
+}
+
+.prediction-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    backdrop-filter: blur(3px);
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.close-btn:hover {
+    background: #f8f9fa;
+}
+
+.prediction-details {
+    display: grid;
+    gap: 1rem;
+}
+
+.detail-item {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.confidence-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+}
+
+.confidence-fill {
+    height: 100%;
+    transition: width 0.3s;
+    border-radius: 4px;
+}
+
+.confidence-fill.confidence-high { background: #28a745; }
+.confidence-fill.confidence-medium { background: #ffc107; }
+.confidence-fill.confidence-low { background: #dc3545; }
+
+.filter-controls {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: end;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 120px;
+}
+
+.filter-item label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .calendar-day {
+        min-height: 100px;
+        max-height: 100px;
+        padding: 0.3rem;
+    }
+    
+    .day-number {
+        font-size: 0.9rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .event-item {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.3rem 0.15rem 0.15rem;
+    }
+    
+    .event-icon {
+        font-size: 0.5rem;
+        width: 10px;
+    }
+    
+    .calendar-header {
+        padding: 1rem;
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .calendar-nav h3 {
+        font-size: 1.2rem;
+    }
+    
+    .day-events .event-item:nth-child(n+3) {
+        display: none;
+    }
+    
+    .filter-group {
+        justify-content: center;
+    }
+    
+    .filter-item {
+        min-width: 100px;
+    }
+}
+
+@media (max-width: 576px) {
+    .calendar-day {
+        min-height: 80px;
+        max-height: 80px;
+        padding: 0.2rem;
+    }
+    
+    .day-number {
+        font-size: 0.8rem;
+    }
+    
+    .event-item {
+        font-size: 0.6rem;
+        padding: 0.1rem 0.2rem 0.1rem 0.1rem;
+    }
+    
+    .event-icon {
+        font-size: 0.45rem;
+        width: 8px;
+    }
+    
+    .day-events .event-item:nth-child(n+2) {
+        display: none;
+    }
+}
+
+/* アニメーション */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.calendar-day {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.event-item {
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* カレンダー全体のグリッド調整 */
+.calendar-grid {
+    border: 1px solid #dee2e6;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-calendar-alt me-2"></i>公募予測カレンダー
+            </h1>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- カレンダー本体 -->
+        <div class="col-lg-9">
+            <!-- フィルターコントロール -->
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <div class="filter-item">
+                        <label>補助金種別</label>
+                        <select id="subsidyFilter" class="form-select form-select-sm">
+                            <option value="">全て</option>
+                            <option value="IT">IT導入補助金</option>
+                            <option value="ものづくり">ものづくり補助金</option>
+                            <option value="再構築">事業再構築補助金</option>
+                            <option value="持続化">持続化補助金</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label>イベント種別</label>
+                        <select id="eventTypeFilter" class="form-select form-select-sm">
+                            <option value="">全て</option>
+                            <option value="announcement">公募開始</option>
+                            <option value="deadline">申請締切</option>
+                            <option value="result">結果発表</option>
+                            <option value="info_session">説明会</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label>信頼度</label>
+                        <select id="confidenceFilter" class="form-select form-select-sm">
+                            <option value="">全て</option>
+                            <option value="high">高 (80%以上)</option>
+                            <option value="medium">中 (60-79%)</option>
+                            <option value="low">低 (60%未満)</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <button class="btn btn-primary btn-sm" onclick="applyFilters()">
+                            <i class="fas fa-filter me-1"></i>適用
+                        </button>
+                    </div>
+                    <div class="filter-item">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">
+                            <i class="fas fa-times me-1"></i>クリア
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- カレンダー -->
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <div class="calendar-nav">
+                        <button class="nav-btn" onclick="navigateMonth({{ prev_year }}, {{ prev_month }})">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <h3 class="mb-0">{{ current_month_name }} {{ current_year }}</h3>
+                        <button class="nav-btn" onclick="navigateMonth({{ next_year }}, {{ next_month }})">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="calendar-stats">
+                        <span class="badge bg-light text-dark me-2">
+                            <i class="fas fa-calendar-check me-1"></i>
+                            {{ total_predictions }}件の予測
+                        </span>
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-chart-line me-1"></i>
+                            信頼度 {{ confidence_rate }}%
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="calendar-grid">
+                    <!-- 曜日ヘッダー -->
+                    {% for weekday in weekdays %}
+                    <div class="calendar-day-header">{{ weekday }}</div>
+                    {% endfor %}
+                    
+                    <!-- カレンダー日付 -->
+                    {% for week in weeks %}
+                        {% for day in week %}
+                        <div class="calendar-day {% if day == 0 %}other-month{% endif %} {% if day == today.day and current_month == today.month and current_year == today.year %}today{% endif %}" 
+                             data-date="{% if day > 0 %}{{ current_year }}-{{ current_month|stringformat:'02d' }}-{{ day|stringformat:'02d' }}{% endif %}"
+                             onclick="{% if day > 0 %}selectDay('{{ current_year }}-{{ current_month|stringformat:'02d' }}-{{ day|stringformat:'02d' }}'){% endif %}">
+                            
+                            {% if day > 0 %}
+                                <div class="day-number">{{ day }}</div>
+                                <div class="day-events" id="events-{{ current_year }}-{{ current_month|stringformat:'02d' }}-{{ day|stringformat:'02d' }}">
+                                    <!-- イベントはJavaScriptで動的に追加 -->
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- サイドバー -->
+        <div class="col-lg-3">
+            <!-- 予測統計 -->
+            <div class="stats-sidebar">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-pie me-2"></i>予測統計
+                </h5>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>総予測数</span>
+                        <strong>{{ total_predictions }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>高信頼度</span>
+                        <strong>{{ high_confidence_count }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>信頼度平均</span>
+                        <strong>{{ confidence_rate }}%</strong>
+                    </div>
+                </div>
+                
+                <h6 class="mb-3">イベント種別</h6>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color event-announcement">
+                            <i class="fas fa-bullhorn legend-icon"></i>
+                        </div>
+                        <span>公募開始</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color event-deadline">
+                            <i class="fas fa-clock legend-icon"></i>
+                        </div>
+                        <span>申請締切</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color event-result">
+                            <i class="fas fa-award legend-icon"></i>
+                        </div>
+                        <span>結果発表</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color event-info_session">
+                            <i class="fas fa-users legend-icon"></i>
+                        </div>
+                        <span>説明会</span>
+                    </div>
+                </div>
+                
+                <h6 class="mb-2 mt-3">信頼度レベル</h6>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-confidence confidence-high"></div>
+                        <span>高 (80%+) - 白丸</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-confidence confidence-medium"></div>
+                        <span>中 (60-79%) - ストライプ</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-confidence confidence-low"></div>
+                        <span>低 (60%未満) - 赤ダッシュ</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 今後のイベント -->
+            <div class="stats-sidebar">
+                <h5 class="mb-3">
+                    <i class="fas fa-clock me-2"></i>今後のイベント
+                </h5>
+                <div id="upcomingEvents">
+                    <!-- 今後のイベントリストをJavaScriptで生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 予測詳細モーダル -->
+<div class="prediction-modal" id="predictionModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4 id="modalTitle">予測詳細</h4>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="prediction-details" id="modalContent">
+            <!-- 詳細内容はJavaScriptで動的に生成 -->
+        </div>
+    </div>
+</div>
+
+<script>
+// 予測データ（DjangoからJSON形式で渡される）
+const predictions = {{ predictions|safe }};
+const currentYear = {{ current_year }};
+const currentMonth = {{ current_month }};
+
+// イベントタイプとアイコンのマッピング
+const eventIcons = {
+    'announcement': 'fas fa-bullhorn',
+    'deadline': 'fas fa-clock',
+    'result': 'fas fa-award',
+    'extension': 'fas fa-calendar-plus',
+    'info_session': 'fas fa-users'
+};
+
+// ページ読み込み時の初期化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Prediction calendar loading...');
+    renderCalendarEvents();
+    generateUpcomingEvents();
+    console.log('Prediction calendar loaded successfully');
+});
+
+// カレンダーイベントのレンダリング
+function renderCalendarEvents() {
+    // 既存のイベントをクリア
+    document.querySelectorAll('.day-events').forEach(container => {
+        container.innerHTML = '';
+    });
+    
+    // イベント数をカウント
+    const eventCounts = {};
+    
+    // 各予測をカレンダーに配置
+    Object.values(predictions).forEach(prediction => {
+        const dateKey = prediction.date;
+        if (!eventCounts[dateKey]) eventCounts[dateKey] = 0;
+        eventCounts[dateKey]++;
+        
+        const eventContainer = document.getElementById(`events-${prediction.date}`);
+        if (eventContainer && eventCounts[dateKey] <= 3) { // 最大3個まで表示
+            const eventElement = createEventElement(prediction);
+            eventContainer.appendChild(eventElement);
+        }
+    });
+    
+    // オーバーフロー表示の追加
+    Object.keys(eventCounts).forEach(dateKey => {
+        if (eventCounts[dateKey] > 3) {
+            const eventContainer = document.getElementById(`events-${dateKey}`);
+            if (eventContainer) {
+                const overflowDiv = document.createElement('div');
+                overflowDiv.className = 'events-overflow';
+                overflowDiv.innerHTML = `<i class="fas fa-ellipsis-h"></i> 他${eventCounts[dateKey] - 3}件`;
+                overflowDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    selectDay(dateKey);
+                };
+                eventContainer.appendChild(overflowDiv);
+            }
+        }
+    });
+}
+
+// イベント要素の作成
+function createEventElement(prediction) {
+    const eventDiv = document.createElement('div');
+    eventDiv.className = `event-item event-${prediction.event_type}`;
+    
+    // アイコンの作成
+    const iconSpan = document.createElement('span');
+    iconSpan.className = `event-icon ${eventIcons[prediction.event_type] || 'fas fa-calendar'}`;
+    
+    // テキストの作成
+    const textSpan = document.createElement('span');
+    textSpan.className = 'event-text';
+    let displayText = prediction.subsidy_name;
+    if (displayText.length > 10) {
+        displayText = displayText.substring(0, 8) + '...';
+    }
+    textSpan.textContent = displayText;
+    
+    // 信頼度インジケーター
+    const indicator = document.createElement('div');
+    indicator.className = `confidence-indicator confidence-${getConfidenceLevel(prediction.confidence)}`;
+    
+    // 要素を組み立て
+    eventDiv.appendChild(iconSpan);
+    eventDiv.appendChild(textSpan);
+    eventDiv.appendChild(indicator);
+    
+    eventDiv.title = `${prediction.subsidy_name} - ${prediction.description} (信頼度: ${prediction.confidence}%)`;
+    
+    // クリックイベント
+    eventDiv.onclick = (e) => {
+        e.stopPropagation();
+        showPredictionDetail(prediction);
+    };
+    
+    return eventDiv;
+}
+
+// 信頼度レベルの取得
+function getConfidenceLevel(confidence) {
+    if (confidence >= 80) return 'high';
+    if (confidence >= 60) return 'medium';
+    return 'low';
+}
+
+// 日付選択
+function selectDay(date) {
+    const dayPredictions = Object.values(predictions).filter(p => p.date === date);
+    if (dayPredictions.length > 0) {
+        showDayPredictions(date, dayPredictions);
+    }
+}
+
+// 一日の予測一覧表示
+function showDayPredictions(date, dayPredictions) {
+    const modal = document.getElementById('predictionModal');
+    const title = document.getElementById('modalTitle');
+    const content = document.getElementById('modalContent');
+    
+    title.textContent = `${formatDate(date)} の予測 (${dayPredictions.length}件)`;
+    
+    content.innerHTML = dayPredictions.map(prediction => `
+        <div class="detail-item" onclick="showPredictionDetail(${JSON.stringify(prediction).replace(/"/g, '&quot;')})" style="cursor: pointer;">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex align-items-center">
+                    <i class="${eventIcons[prediction.event_type] || 'fas fa-calendar'} me-2" style="color: #666;"></i>
+                    <div>
+                        <h6 class="mb-1">${prediction.subsidy_name}</h6>
+                        <small class="text-muted">${getEventTypeName(prediction.event_type)}</small>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-${prediction.confidence >= 80 ? 'success' : prediction.confidence >= 60 ? 'warning' : 'danger'}">
+                        ${prediction.confidence}%
+                    </span>
+                    <div class="confidence-indicator confidence-${getConfidenceLevel(prediction.confidence)} mt-1" style="position: relative; margin-left: auto;"></div>
+                </div>
+            </div>
+            <p class="mb-0 mt-2">${prediction.description}</p>
+        </div>
+    `).join('');
+    
+    modal.style.display = 'block';
+}
+
+// 月ナビゲーション
+function navigateMonth(year, month) {
+    window.location.href = `?year=${year}&month=${month}`;
+}
+
+// 予測詳細表示
+function showPredictionDetail(prediction) {
+    const modal = document.getElementById('predictionModal');
+    const title = document.getElementById('modalTitle');
+    const content = document.getElementById('modalContent');
+    
+    title.innerHTML = `
+        <i class="${eventIcons[prediction.event_type] || 'fas fa-calendar'} me-2"></i>
+        ${prediction.subsidy_name} - ${getEventTypeName(prediction.event_type)}
+    `;
+    
+    content.innerHTML = `
+        <div class="detail-item">
+            <div class="detail-label">
+                <i class="fas fa-calendar me-1"></i>予測日
+            </div>
+            <div>${formatDate(prediction.date)}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">
+                <i class="fas fa-chart-line me-1"></i>信頼度
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="confidence-bar flex-grow-1">
+                    <div class="confidence-fill confidence-${getConfidenceLevel(prediction.confidence)}" 
+                         style="width: ${prediction.confidence}%"></div>
+                </div>
+                <div class="confidence-indicator confidence-${getConfidenceLevel(prediction.confidence)}"></div>
+                <span>${prediction.confidence}%</span>
+            </div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">
+                <i class="fas fa-info-circle me-1"></i>説明
+            </div>
+            <div>${prediction.description}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">
+                <i class="fas fa-lightbulb me-1"></i>推奨アクション
+            </div>
+            <div>${prediction.recommended_action}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">
+                <i class="fas fa-star me-1"></i>申請難易度
+            </div>
+            <div>${'★'.repeat(prediction.difficulty)}${'☆'.repeat(5-prediction.difficulty)}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">
+                <i class="fas fa-yen-sign me-1"></i>最大補助金額
+            </div>
+            <div>${prediction.max_amount.toLocaleString()}万円</div>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+}
+
+// モーダルを閉じる
+function closeModal() {
+    document.getElementById('predictionModal').style.display = 'none';
+}
+
+// 今後のイベント生成
+function generateUpcomingEvents() {
+    const upcoming = Object.values(predictions)
+        .filter(p => new Date(p.date) >= new Date())
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .slice(0, 5);
+    
+    const container = document.getElementById('upcomingEvents');
+    if (upcoming.length === 0) {
+        container.innerHTML = '<p class="text-muted">今後のイベントはありません</p>';
+        return;
+    }
+    
+    container.innerHTML = upcoming.map(event => `
+        <div class="border-bottom pb-2 mb-2" style="cursor: pointer;" onclick="showPredictionDetail(${JSON.stringify(event).replace(/"/g, '&quot;')})">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex align-items-center">
+                    <i class="${eventIcons[event.event_type] || 'fas fa-calendar'} me-2" style="color: #666;"></i>
+                    <div>
+                        <strong class="d-block">${event.subsidy_name.length > 15 ? event.subsidy_name.substring(0, 13) + '...' : event.subsidy_name}</strong>
+                        <small class="text-muted">${formatDate(event.date)} - ${getEventTypeName(event.event_type)}</small>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <small class="badge bg-${event.confidence >= 80 ? 'success' : event.confidence >= 60 ? 'warning' : 'danger'}">${event.confidence}%</small>
+                    <div class="confidence-indicator confidence-${getConfidenceLevel(event.confidence)} mt-1" style="position: relative; margin-left: auto;"></div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// フィルター適用
+function applyFilters() {
+    const subsidyFilter = document.getElementById('subsidyFilter').value;
+    const eventTypeFilter = document.getElementById('eventTypeFilter').value;
+    const confidenceFilter = document.getElementById('confidenceFilter').value;
+    
+    // すべてのイベントとオーバーフローを一旦表示
+    document.querySelectorAll('.event-item, .events-overflow').forEach(item => {
+        item.style.display = 'flex';
+    });
+    
+    // フィルター適用
+    document.querySelectorAll('.event-item').forEach(item => {
+        let show = true;
+        
+        if (subsidyFilter && !item.querySelector('.event-text').textContent.includes(subsidyFilter)) {
+            show = false;
+        }
+        
+        if (eventTypeFilter && !item.classList.contains(`event-${eventTypeFilter}`)) {
+            show = false;
+        }
+        
+        if (confidenceFilter) {
+            const hasConfidenceClass = item.querySelector(`.confidence-${confidenceFilter}`);
+            if (!hasConfidenceClass) {
+                show = false;
+            }
+        }
+        
+        item.style.display = show ? 'flex' : 'none';
+    });
+}
+
+// フィルタークリア
+function clearFilters() {
+    document.getElementById('subsidyFilter').value = '';
+    document.getElementById('eventTypeFilter').value = '';
+    document.getElementById('confidenceFilter').value = '';
+    
+    document.querySelectorAll('.event-item, .events-overflow').forEach(item => {
+        item.style.display = 'flex';
+    });
+}
+
+// ユーティリティ関数
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ja-JP', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'short'
+    });
+}
+
+function getEventTypeName(eventType) {
+    const types = {
+        'announcement': '公募開始',
+        'deadline': '申請締切',
+        'result': '結果発表',
+        'extension': '締切延長',
+        'info_session': '説明会'
+    };
+    return types[eventType] || eventType;
+}
+
+// モーダル外クリックで閉じる
+window.onclick = function(event) {
+    const modal = document.getElementById('predictionModal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+</script>
+{% endblock %}

@@ -277,17 +277,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
-<a class="nav-link" href="{% url 'advisor:chat_interface' %}">
-    <i class="fas fa-robot"></i> AI相談
-</a>
-<li class="nav-item">
-    <a class="nav-link" href="{% url 'advisor:prediction_calendar' %}">
-        <i class="fas fa-calendar-alt me-1"></i>公募カレンダー
-    </a>
-</li>
+                        <a class="nav-link" href="{% url 'advisor:enhanced_chat_interface' %}">
+                            <i class="fas fa-robot"></i> AI相談
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'advisor:statistics_dashboard' %}">
+                        <a class="nav-link" href="{% url 'advisor:statistics' %}">
                             <i class="fas fa-chart-bar"></i> 統計
                         </a>
                     </li>
@@ -300,7 +295,7 @@
                             <li><a class="dropdown-item" href="{% url 'advisor:prediction_dashboard' %}">
                                 <i class="fas fa-crystal-ball"></i> 予測ダッシュボード
                             </a></li>
-                            <li><a class="dropdown-item" href="{% url 'advisor:statistics_dashboard' %}">
+                            <li><a class="dropdown-item" href="{% url 'advisor:trend_analysis' %}">
                                 <i class="fas fa-chart-line"></i> トレンド分析
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
@@ -379,7 +374,7 @@
                                     <h6 class="debug-section-title">📊 高度分析</h6>
                                 </li>
                                 <li>
-                                    <a class="debug-dropdown-item" href="{% url 'advisor:statistics_dashboard' %}">
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:statistics' %}">
                                         <i class="fas fa-chart-line debug-icon"></i>
                                         <div class="debug-item-content">
                                             <div class="debug-item-title">詳細統計分析</div>
@@ -389,7 +384,7 @@
                                 </li>
                                 {% comment %}
                                 <li>
-                                    <a class="debug-dropdown-item" href="{% url 'advisor:statistics_dashboard' %}">
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:trend_analysis' %}">
                                         <i class="fas fa-trending-up debug-icon"></i>
                                         <div class="debug-item-content">
                                             <div class="debug-item-title">トレンド分析</div>
