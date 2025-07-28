@@ -1,0 +1,427 @@
+<!-- templates/advisor/statistics_dashboard.html 修正版 -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 修正：高さを固定してオーバーフローを制御 */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    text-align: center;
+    transition: transform 0.3s;
+    min-height: 120px; /* 固定高さ */
+    max-height: 150px; /* 最大高さ制限 */
+}
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+.chart-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+    max-height: 500px; /* 最大高さ制限 */
+    overflow: hidden; /* オーバーフロー制御 */
+}
+.chart-container canvas {
+    max-height: 400px !important; /* チャートの高さ制限 */
+}
+.keyword-tag {
+    display: inline-block;
+    background: #e9ecef;
+    padding: 0.5rem 1rem;
+    margin: 0.25rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+.keyword-cloud {
+    max-height: 200px; /* キーワードクラウドの高さ制限 */
+    overflow-y: auto; /* 縦スクロール */
+}
+.error-alert {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+.data-quality-indicator {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    margin-left: 1rem;
+}
+.quality-good { background: #d4edda; color: #155724; }
+.quality-limited { background: #fff3cd; color: #856404; }
+.quality-error { background: #f8d7da; color: #721c24; }
+
+/* 修正：レスポンシブ対応とレイアウト固定 */
+.container-fluid {
+    max-width: 100%;
+    overflow-x: hidden; /* 横スクロール防止 */
+}
+.row {
+    margin: 0; /* マージンリセット */
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-chart-bar me-2"></i>{{ page_title }}
+                {% if extended_stats %}
+                    <span class="data-quality-indicator quality-{{ extended_stats.data_quality }}">
+                        {% if extended_stats.data_quality == 'good' %}
+                            <i class="fas fa-check-circle"></i> データ良好
+                        {% elif extended_stats.data_quality == 'limited' %}
+                            <i class="fas fa-exclamation-triangle"></i> データ限定
+                        {% else %}
+                            <i class="fas fa-times-circle"></i> データエラー
+                        {% endif %}
+                    </span>
+                {% endif %}
+            </h1>
+        </div>
+    </div>
+    
+    <!-- エラーメッセージ表示 -->
+    {% if error_message %}
+    <div class="row">
+        <div class="col-12">
+            <div class="error-alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {{ error_message }}
+                <br><small>基本的な統計情報を表示しています。</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 基本統計 -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>{{ basic_stats.total_subsidies|default:0 }}</h3>
+            <p class="mb-0">総補助金数</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ basic_stats.total_conversations|default:0 }}</h3>
+            <p class="mb-0">総会話数</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ basic_stats.active_sessions|default:0 }}</h3>
+            <p class="mb-0">アクティブセッション</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ subsidy_stats.avg_amount|floatformat:0|default:0 }}万円</h3>
+            <p class="mb-0">平均補助金額</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- 会話数推移 -->
+        <div class="col-lg-8 mb-4">
+            <div class="chart-container">
+                <h4 class="mb-3">
+                    <i class="fas fa-chart-line me-2"></i>会話数推移（過去30日）
+                </h4>
+                {% if daily_conversations %}
+                    <div style="position: relative; height: 300px;">
+                        <canvas id="conversationChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        会話データがありません。チャット機能を使用してデータを蓄積してください。
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 事業種別統計 -->
+        <div class="col-lg-4 mb-4">
+            <div class="chart-container">
+                <h4 class="mb-3">
+                    <i class="fas fa-chart-pie me-2"></i>事業種別分布
+                </h4>
+                {% if business_type_stats %}
+                    <div style="position: relative; height: 300px;">
+                        <canvas id="businessTypeChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        事業種別データがありません。
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- 採択率比較 -->
+        <div class="col-lg-6 mb-4">
+            <div class="chart-container">
+                <h4 class="mb-3">
+                    <i class="fas fa-chart-bar me-2"></i>補助金別採択率
+                </h4>
+                {% if adoption_data %}
+                    <div style="position: relative; height: 300px;">
+                        <canvas id="adoptionChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        採択率データがありません。
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 人気キーワード -->
+        <div class="col-lg-6 mb-4">
+            <div class="chart-container">
+                <h4 class="mb-3">
+                    <i class="fas fa-tags me-2"></i>人気の検索キーワード
+                </h4>
+                
+                {% if popular_keywords %}
+                    <div class="keyword-cloud">
+                        {% for keyword, count in popular_keywords %}
+                            <span class="keyword-tag">{{ keyword }} ({{ count }})</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        キーワードデータがありません。
+                    </div>
+                {% endif %}
+                
+                <!-- 追加統計情報 -->
+                <div class="mt-4">
+                    <h6>詳細統計</h6>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <strong>{{ subsidy_stats.max_amount|floatformat:0|default:0 }}万円</strong>
+                                <br><small class="text-muted">最高補助金額</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <strong>{{ subsidy_stats.min_amount|floatformat:0|default:0 }}万円</strong>
+                                <br><small class="text-muted">最低補助金額</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <strong>{{ business_type_stats|length|default:0 }}</strong>
+                                <br><small class="text-muted">事業分野数</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if extended_stats %}
+                    <div class="row text-center mt-3">
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <strong>{{ extended_stats.recent_conversations_count|default:0 }}</strong>
+                                <br><small class="text-muted">今週の会話</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <strong>{{ extended_stats.avg_session_length|default:0 }}</strong>
+                                <br><small class="text-muted">平均セッション長</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 最下部に固定高さの要素を追加してレイアウト安定化 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center text-muted" style="padding: 2rem;">
+                <small>
+                    <i class="fas fa-clock me-1"></i>
+                    最終更新: {{ extended_stats.last_update|default:"不明" }}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// 修正：Chart.js の設定を安全に実行
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Statistics dashboard loading...');
+    
+    // データ存在チェック関数
+    function hasData(data) {
+        return data && Array.isArray(data) && data.length > 0;
+    }
+    
+    // 安全なチャート作成関数
+    function createChartSafely(canvasId, chartConfig) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+            console.warn(`Canvas element '${canvasId}' not found`);
+            return null;
+        }
+        
+        try {
+            return new Chart(canvas.getContext('2d'), chartConfig);
+        } catch (error) {
+            console.error(`Error creating chart '${canvasId}':`, error);
+            return null;
+        }
+    }
+    
+    // 会話数推移チャート
+    {% if daily_conversations %}
+    const conversationData = {{ daily_conversations|safe }};
+    if (hasData(conversationData)) {
+        createChartSafely('conversationChart', {
+            type: 'line',
+            data: {
+                labels: conversationData.map(d => d.date),
+                datasets: [{
+                    label: '会話数',
+                    data: conversationData.map(d => d.count),
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+    
+    // 事業種別チャート
+    {% if business_type_stats %}
+    const businessTypeData = {{ business_type_stats|safe }};
+    if (hasData(businessTypeData)) {
+        createChartSafely('businessTypeChart', {
+            type: 'doughnut',
+            data: {
+                labels: businessTypeData.map(d => d.target_business_type || 'Unknown'),
+                datasets: [{
+                    data: businessTypeData.map(d => d.count),
+                    backgroundColor: [
+                        '#667eea', '#764ba2', '#f093fb', '#f5576c', 
+                        '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 10
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+    
+    // 採択率チャート
+    {% if adoption_data %}
+    const adoptionData = {{ adoption_data|safe }};
+    if (hasData(adoptionData)) {
+        createChartSafely('adoptionChart', {
+            type: 'bar',
+            data: {
+                labels: adoptionData.map(d => d.name),
+                datasets: [{
+                    label: '採択率 (%)',
+                    data: adoptionData.map(d => d.rate),
+                    backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                    borderColor: '#667eea',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const index = context.dataIndex;
+                                const apps = adoptionData[index].applications;
+                                return `申請件数: ${apps.toLocaleString()}件`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+    
+    console.log('Statistics dashboard loaded successfully');
+});
+</script>
+{% endblock %}

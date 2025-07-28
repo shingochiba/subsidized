@@ -6,6 +6,7 @@
 {% block extra_css %}
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <style>
+/* 既存のCSS（変更なし） */
 :root {
     --primary-color: #667eea;
     --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -173,6 +174,7 @@ body {
     margin-top: 32px;
 }
 
+/* 修正: ボタン要素として定義 */
 .quick-action-btn {
     background: white;
     border: 2px solid var(--border-color);
@@ -181,6 +183,10 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     text-align: left;
+    font-family: inherit;
+    font-size: inherit;
+    width: 100%;
+    display: block;
 }
 
 .quick-action-btn:hover {
@@ -205,6 +211,9 @@ body {
     font-size: 0.85rem;
     color: var(--text-secondary);
 }
+
+/* 以下、既存のCSSを継続（省略） */
+/* ... 既存のチャットメッセージ、タイピングインジケーター、入力エリアのCSS ... */
 
 /* チャットメッセージ */
 .chat-message {
@@ -280,49 +289,6 @@ body {
 .message-text {
     line-height: 1.6;
     word-wrap: break-word;
-}
-
-.message-text h3, .message-text h4 {
-    margin: 16px 0 8px 0;
-    color: inherit;
-    font-weight: 600;
-}
-
-.message-text h3 {
-    font-size: 1.2rem;
-}
-
-.message-text h4 {
-    font-size: 1.1rem;
-}
-
-.message-text ul, .message-text ol {
-    margin: 12px 0;
-    padding-left: 20px;
-}
-
-.message-text li {
-    margin: 8px 0;
-}
-
-.message-text strong {
-    font-weight: 600;
-}
-
-.message-text em {
-    font-style: italic;
-}
-
-.message-text code {
-    background: rgba(0, 0, 0, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-    font-size: 0.9em;
-}
-
-.user-content .message-text code {
-    background: rgba(255, 255, 255, 0.2);
 }
 
 .message-time {
@@ -505,40 +471,6 @@ body {
         height: 48px;
     }
 }
-
-/* 追加のアニメーション効果 */
-.fade-in {
-    animation: fadeIn 0.5s ease-out;
-}
-
-.slide-up {
-    animation: slideInUp 0.4s ease-out;
-}
-
-/* メッセージ内の特殊要素 */
-.highlight-box {
-    background: linear-gradient(135deg, #fef5e7 0%, #fed7aa 100%);
-    border: 1px solid #f6ad55;
-    border-radius: 8px;
-    padding: 12px;
-    margin: 12px 0;
-}
-
-.info-box {
-    background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
-    border: 1px solid #63b3ed;
-    border-radius: 8px;
-    padding: 12px;
-    margin: 12px 0;
-}
-
-.success-box {
-    background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
-    border: 1px solid #68d391;
-    border-radius: 8px;
-    padding: 12px;
-    margin: 12px 0;
-}
 </style>
 {% endblock %}
 
@@ -570,30 +502,31 @@ body {
                     補助金に関するご質問をお気軽にどうぞ。
                 </p>
                 
+                <!-- 修正: button要素に変更、data-message属性を使用 -->
                 <div class="quick-actions">
-                    <div class="quick-action-btn" onclick="sendQuickMessage('IT導入補助金について教えて')">
+                    <button class="quick-action-btn" type="button" data-message="IT導入補助金について教えて">
                         <div class="icon"><i class="fas fa-laptop"></i></div>
                         <div class="title">IT導入補助金</div>
                         <div class="description">デジタル化を進めたい</div>
-                    </div>
+                    </button>
                     
-                    <div class="quick-action-btn" onclick="sendQuickMessage('省力化について知りたい')">
+                    <button class="quick-action-btn" type="button" data-message="省力化について知りたい">
                         <div class="icon"><i class="fas fa-robot"></i></div>
                         <div class="title">省力化投資</div>
                         <div class="description">人手不足を解消したい</div>
-                    </div>
+                    </button>
                     
-                    <div class="quick-action-btn" onclick="sendQuickMessage('小規模事業者向けの補助金は？')">
+                    <button class="quick-action-btn" type="button" data-message="小規模事業者向けの補助金は？">
                         <div class="icon"><i class="fas fa-store"></i></div>
                         <div class="title">小規模事業者支援</div>
                         <div class="description">販路開拓をしたい</div>
-                    </div>
+                    </button>
                     
-                    <div class="quick-action-btn" onclick="sendQuickMessage('創業したばかりですが使える補助金は？')">
+                    <button class="quick-action-btn" type="button" data-message="創業したばかりですが使える補助金は？">
                         <div class="icon"><i class="fas fa-rocket"></i></div>
                         <div class="title">創業支援</div>
                         <div class="description">起業・創業を支援してほしい</div>
-                    </div>
+                    </button>
                 </div>
             </div>
         </div>
@@ -616,52 +549,120 @@ body {
 </div>
 
 <script>
-class EnhancedChatInterface {
+// 文脈理解対応チャットインターフェース - 最終版
+
+class ContextAwareChatInterface {
     constructor() {
+        console.log("ContextAwareChatInterface 初期化開始");
         this.sessionId = this.generateSessionId();
         this.isTyping = false;
-        this.conversationHistory = [];
+        this.conversationHistory = []; // 完全な会話履歴を保持
         this.initializeEventListeners();
+        this.setupQuickActionButtons();
         this.autoResizeTextarea();
+        console.log("ContextAwareChatInterface 初期化完了");
     }
 
     generateSessionId() {
-        return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const sessionId = 'context_chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        console.log("セッションID生成:", sessionId);
+        return sessionId;
+    }
+
+    setupQuickActionButtons() {
+        console.log("クイックアクションボタン設定開始");
+        
+        const quickActionButtons = document.querySelectorAll('.quick-action-btn[data-message]');
+        console.log(`クイックアクションボタン数: ${quickActionButtons.length}`);
+        
+        quickActionButtons.forEach((button, index) => {
+            const message = button.getAttribute('data-message');
+            console.log(`ボタン ${index + 1} のメッセージ: ${message}`);
+            
+            // 既存のイベントリスナーを削除（重複防止）
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            // イベントリスナーを追加
+            newButton.addEventListener('click', (event) => {
+                console.log(`クイックボタンクリック: ${message}`);
+                this.sendQuickMessage(message);
+                event.preventDefault();
+                event.stopPropagation();
+            });
+            
+            console.log(`ボタン ${index + 1} にイベントリスナー追加完了`);
+        });
+        
+        console.log("クイックアクションボタン設定完了");
     }
 
     initializeEventListeners() {
         const chatInput = document.getElementById('chat-input');
         const sendButton = document.getElementById('send-chat');
 
+        console.log("イベントリスナー設定中...");
+
+        if (!chatInput || !sendButton) {
+            console.error("必要な要素が見つかりません");
+            return;
+        }
+
         // 送信ボタンクリック
-        sendButton.addEventListener('click', () => this.sendMessage());
+        sendButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log("送信ボタンクリック");
+            this.sendMessage();
+        });
 
         // Enterキーで送信（Shift+Enterで改行）
         chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
+                console.log("Enterキー送信");
                 this.sendMessage();
             }
         });
 
         // テキストエリアの自動リサイズ
         chatInput.addEventListener('input', () => this.autoResizeTextarea());
+        
+        console.log("イベントリスナー設定完了");
     }
 
     autoResizeTextarea() {
         const textarea = document.getElementById('chat-input');
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        if (textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
     }
 
     async sendMessage() {
+        console.log("sendMessage 開始");
+        
         const chatInput = document.getElementById('chat-input');
         const message = chatInput.value.trim();
 
-        if (!message || this.isTyping) return;
+        console.log("送信メッセージ:", message);
+        console.log("isTyping:", this.isTyping);
+        console.log("現在の会話履歴:", this.conversationHistory);
+
+        if (!message || this.isTyping) {
+            console.log("送信中止 - メッセージが空または送信中");
+            return;
+        }
 
         // ウェルカムスクリーンを非表示
         this.hideWelcomeScreen();
+
+        // ユーザーメッセージを履歴に追加
+        const userMessage = {
+            role: 'user',
+            content: message,
+            timestamp: new Date()
+        };
+        this.conversationHistory.push(userMessage);
 
         // ユーザーメッセージを表示
         this.addMessageToChat('user', message);
@@ -672,45 +673,200 @@ class EnhancedChatInterface {
         this.showTypingIndicator();
 
         try {
-            const response = await this.callChatAPI(message);
+            console.log("Context Aware API呼び出し開始");
+            const response = await this.callContextAwareChatAPI(message);
+            console.log("API応答:", response);
+            
             this.hideTypingIndicator();
             
             if (response.success) {
-                this.addMessageToChat('assistant', response.response.answer);
+                const answer = response.response || 'すみません、回答を取得できませんでした。';
+                
+                // アシスタントメッセージを履歴に追加
+                const assistantMessage = {
+                    role: 'assistant',
+                    content: answer,
+                    timestamp: new Date(),
+                    metadata: {
+                        context_detected: response.context_detected,
+                        confidence_score: response.confidence_score,
+                        model_used: response.model_used
+                    }
+                };
+                this.conversationHistory.push(assistantMessage);
+                
+                console.log("表示する回答:", answer);
+                console.log("文脈検出:", response.context_detected);
+                console.log("更新された会話履歴:", this.conversationHistory);
+                
+                this.addMessageToChat('assistant', answer);
+                
+                // 文脈検出の表示（デバッグ用）
+                if (response.context_detected) {
+                    console.log(`🎯 文脈検出成功: ${response.context_detected}`);
+                }
             } else {
-                this.addMessageToChat('assistant', '申し訳ございません。エラーが発生しました。もう一度お試しください。');
+                console.error("API エラー:", response.error);
+                this.addMessageToChat('assistant', '申し訳ございません。エラーが発生しました: ' + (response.error || '不明なエラー'));
             }
         } catch (error) {
             this.hideTypingIndicator();
-            console.error('Chat API Error:', error);
-            this.addMessageToChat('assistant', 'ネットワークエラーが発生しました。接続を確認してお試しください。');
+            console.error('Context Aware Chat API Error:', error);
+            
+            // フォールバック: 既存のAPIを試行
+            try {
+                console.log("フォールバックAPI試行");
+                const fallbackResponse = await this.callFallbackAPI(message);
+                
+                if (fallbackResponse.success) {
+                    const answer = fallbackResponse.response || fallbackResponse.answer || 'フォールバック回答を表示しています。';
+                    this.addMessageToChat('assistant', answer);
+                } else {
+                    this.addMessageToChat('assistant', 'ネットワークエラーが発生しました。接続を確認してお試しください。');
+                }
+            } catch (fallbackError) {
+                console.error('Fallback API Error:', fallbackError);
+                this.addMessageToChat('assistant', 'システムエラーが発生しました。しばらく時間をおいてからお試しください。');
+            }
         }
     }
 
-    async callChatAPI(message) {
+    async callContextAwareChatAPI(message) {
+        console.log("Context Aware API呼び出し詳細:");
+        console.log("URL: /advisor/api/context-aware-chat/");
+        console.log("Message:", message);
+        console.log("Session ID:", this.sessionId);
+        
+        // 会話履歴から最新の5つの対話を文脈として送信
+        const recentContext = this.conversationHistory.slice(-5).map(msg => ({
+            role: msg.role,
+            content: msg.content,
+            timestamp: msg.timestamp
+        }));
+        
+        const requestData = {
+            message: message,
+            session_id: this.sessionId,
+            conversation_context: recentContext
+        };
+        
+        console.log("Request Data:", requestData);
+        
+        const response = await fetch('/advisor/api/context-aware-chat/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCSRFToken(),
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        console.log("Response Status:", response.status);
+        console.log("Response OK:", response.ok);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Response Data:", data);
+        
+        return data;
+    }
+
+    async callFallbackAPI(message) {
+        console.log("Fallback API呼び出し");
+        console.log("URL: /advisor/api/enhanced-chat/");
+        
+        // 文脈を考慮した質問の強化
+        const enhancedMessage = this.enhanceMessageWithContext(message);
+        
+        const requestData = {
+            message: enhancedMessage,
+            session_id: this.sessionId,
+            conversation_context: this.conversationHistory.slice(-3), // 最新3件
+            context: this.buildContextString()
+        };
+        
         const response = await fetch('/advisor/api/enhanced-chat/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': this.getCSRFToken(),
             },
-            body: JSON.stringify({
-                message: message,
-                session_id: this.sessionId
-            })
+            body: JSON.stringify(requestData)
         });
 
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         return await response.json();
     }
 
+    enhanceMessageWithContext(message) {
+        // 簡易的な文脈理解で質問を強化
+        const messageLower = message.toLowerCase();
+        
+        // 前の会話から補助金名を特定
+        let targetSubsidy = null;
+        for (const historyItem of this.conversationHistory.slice(-3).reverse()) {
+            if (historyItem.role === 'user') {
+                const content = historyItem.content.toLowerCase();
+                if (content.includes('it導入') || content.includes('itツール')) {
+                    targetSubsidy = 'IT導入補助金';
+                    break;
+                } else if (content.includes('事業再構築')) {
+                    targetSubsidy = '事業再構築補助金';
+                    break;
+                } else if (content.includes('ものづくり')) {
+                    targetSubsidy = 'ものづくり補助金';
+                    break;
+                }
+            }
+        }
+        
+        // 質問を文脈に応じて強化
+        if (targetSubsidy && messageLower.includes('採択率')) {
+            return `${targetSubsidy}の採択率を上げる方法について教えて`;
+        } else if (targetSubsidy && messageLower.includes('申請')) {
+            return `${targetSubsidy}の申請方法について教えて`;
+        } else if (targetSubsidy && messageLower.includes('要件')) {
+            return `${targetSubsidy}の申請要件について教えて`;
+        }
+        
+        console.log(`文脈強化: "${message}" → "${targetSubsidy ? targetSubsidy + 'に関する' + message : message}"`);
+        return message;
+    }
+
+    buildContextString() {
+        // 最新の3つの会話から文脈を構築
+        const recentMessages = this.conversationHistory.slice(-3);
+        let context = "";
+        
+        for (const msg of recentMessages) {
+            if (msg.role === 'user') {
+                context += `ユーザー: ${msg.content}\n`;
+            } else {
+                context += `アシスタント: ${msg.content.substring(0, 100)}...\n`;
+            }
+        }
+        
+        return context;
+    }
+
     getCSRFToken() {
-        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                     document.querySelector('meta[name="csrf-token"]')?.content || '';
+        console.log("CSRF Token:", token ? "取得済み" : "未取得");
+        return token;
     }
 
     hideWelcomeScreen() {
         const welcomeScreen = document.getElementById('welcome-screen');
         if (welcomeScreen) {
             welcomeScreen.style.display = 'none';
+            console.log("ウェルカムスクリーン非表示");
         }
     }
 
@@ -718,12 +874,18 @@ class EnhancedChatInterface {
         this.isTyping = true;
         const chatContainer = document.getElementById('chat-messages');
         
+        // 既存のタイピングインジケーターを削除
+        const existingIndicator = document.getElementById('typing-indicator');
+        if (existingIndicator) {
+            existingIndicator.remove();
+        }
+        
         const typingDiv = document.createElement('div');
         typingDiv.className = 'typing-indicator';
         typingDiv.id = 'typing-indicator';
         typingDiv.innerHTML = `
             <div class="typing-content">
-                <span>AIが回答を作成中</span>
+                <span>AIが文脈を理解して回答を作成中</span>
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
@@ -734,6 +896,7 @@ class EnhancedChatInterface {
         
         chatContainer.appendChild(typingDiv);
         chatContainer.scrollTop = chatContainer.scrollHeight;
+        console.log("タイピングインジケーター表示");
     }
 
     hideTypingIndicator() {
@@ -741,11 +904,25 @@ class EnhancedChatInterface {
         const typingIndicator = document.getElementById('typing-indicator');
         if (typingIndicator) {
             typingIndicator.remove();
+            console.log("タイピングインジケーター非表示");
         }
     }
 
     addMessageToChat(type, content) {
+        console.log(`メッセージ追加: ${type} - ${content ? content.substring(0, 50) + '...' : 'undefined'}`);
+        
+        // 安全性チェック
+        if (typeof content !== 'string') {
+            console.warn("メッセージがstring型ではありません:", typeof content, content);
+            content = String(content || '回答を取得できませんでした');
+        }
+        
         const chatContainer = document.getElementById('chat-messages');
+        if (!chatContainer) {
+            console.error("チャットコンテナが見つかりません");
+            return;
+        }
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message ${type}-message slide-up`;
         
@@ -779,58 +956,76 @@ class EnhancedChatInterface {
         chatContainer.appendChild(messageDiv);
         chatContainer.scrollTop = chatContainer.scrollHeight;
         
-        // 会話履歴に追加
-        this.conversationHistory.push({
-            type: type,
-            content: content,
-            timestamp: new Date()
-        });
+        console.log("メッセージ追加完了");
     }
 
     formatAssistantMessage(content) {
-        // Markdownライクな書式をHTMLに変換
-        return content
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/`(.*?)`/g, '<code>$1</code>')
-            .replace(/\n\n/g, '</p><p>')
-            .replace(/\n/g, '<br>')
-            .replace(/^### (.*)/gm, '<h4>$1</h4>')
-            .replace(/^## (.*)/gm, '<h3>$1</h3>')
-            .replace(/^# (.*)/gm, '<h2>$1</h2>')
-            .replace(/^\* (.*)/gm, '<li>$1</li>')
-            .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
-            .replace(/^- (.*)/gm, '<li>$1</li>')
-            .replace(/^\d+\. (.*)/gm, '<li>$1</li>')
-            .replace(/(<li>.*<\/li>)/gs, (match) => {
-                if (!match.includes('<ul>') && !match.includes('<ol>')) {
-                    return `<ul>${match}</ul>`;
-                }
-                return match;
-            });
+        // 安全性チェック
+        if (typeof content !== 'string') {
+            content = String(content || '');
+        }
+        
+        try {
+            // HTMLエスケープしてからMarkdown風フォーマット
+            let escaped = this.escapeHtml(content);
+            
+            // Markdownライクな書式をHTMLに変換
+            return escaped
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                .replace(/^### (.*?)$/gm, '<h4 style="margin: 12px 0 8px 0; font-weight: 600;">$1</h4>')
+                .replace(/^## (.*?)$/gm, '<h3 style="margin: 12px 0 8px 0; font-weight: 600;">$1</h3>')
+                .replace(/^# (.*?)$/gm, '<h2 style="margin: 12px 0 8px 0; font-weight: 600;">$1</h2>')
+                .replace(/^- (.*?)$/gm, '<div style="margin: 4px 0; padding-left: 16px;">• $1</div>')
+                .replace(/\n/g, '<br>');
+        } catch (error) {
+            console.error("メッセージフォーマットエラー:", error);
+            return this.escapeHtml(content).replace(/\n/g, '<br>');
+        }
     }
 
     escapeHtml(text) {
+        if (typeof text !== 'string') {
+            text = String(text || '');
+        }
+        
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-}
 
-// クイックアクション用の関数
-function sendQuickMessage(message) {
-    const chatInterface = window.chatInterface;
-    if (chatInterface) {
-        document.getElementById('chat-input').value = message;
-        chatInterface.sendMessage();
+    sendQuickMessage(message) {
+        console.log("クイックメッセージ送信:", message);
+        
+        if (!message || this.isTyping) {
+            console.log("クイックメッセージ送信中止");
+            return;
+        }
+        
+        const chatInput = document.getElementById('chat-input');
+        if (chatInput) {
+            chatInput.value = message;
+            this.sendMessage();
+        } else {
+            console.error("チャット入力欄が見つかりません");
+        }
     }
 }
 
 // ページ読み込み時に初期化
 document.addEventListener('DOMContentLoaded', function() {
-    window.chatInterface = new EnhancedChatInterface();
+    console.log("DOM読み込み完了 - 文脈理解チャットインターフェース初期化");
+    try {
+        window.chatInterface = new ContextAwareChatInterface();
+        console.log("文脈理解チャットインターフェース初期化成功");
+        
+    } catch (error) {
+        console.error("文脈理解チャットインターフェース初期化エラー:", error);
+    }
 });
-</script>
 
+console.log("文脈理解対応チャットスクリプト読み込み完了");
+</script>
 {% csrf_token %}
 {% endblock %}
