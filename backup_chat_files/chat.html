@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}補助金チャット - 補助金アドバイザー{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+/* チャット専用スタイル */
+.chat-wrapper {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.chat-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 80vh;
+    min-height: 600px;
+}
+
+.chat-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.chat-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+#chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f8f9fa;
+}
+
+.message {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.user-message {
+    align-items: flex-end;
+}
+
+.assistant-message {
+    align-items: flex-start;
+}
+
+.message-content {
+    max-width: 80%;
+    padding: 15px 20px;
+    border-radius: 20px;
+    word-wrap: break-word;
+}
+
+.user-message .message-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom-right-radius: 5px;
+}
+
+.assistant-message .message-content {
+    background: white;
+    border: 1px solid #e9ecef;
+    color: #333;
+    border-bottom-left-radius: 5px;
+}
+
+.message-time {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 5px;
+    padding: 0 10px;
+}
+
+.input-area {
+    padding: 20px;
+    background: white;
+    border-top: 1px solid #e9ecef;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+}
+
+#message-input {
+    flex: 1;
+    padding: 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 25px;
+    outline: none;
+    font-size: 16px;
+}
+
+#message-input:focus {
+    border-color: #667eea;
+}
+
+#send-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+#send-button:hover {
+    transform: scale(1.05);
+}
+
+#send-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    background: white;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    max-width: 80px;
+}
+
+.typing-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.typing-dots span {
+    width: 8px;
+    height: 8px;
+    background: #667eea;
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-10px);
+    }
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+    .chat-wrapper {
+        padding: 10px;
+    }
+    
+    .chat-container {
+        height: 90vh;
+    }
+    
+    .message-content {
+        max-width: 95%;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-wrapper">
+    <div class="chat-container">
+        <!-- チャットヘッダー -->
+        <div class="chat-header">
+            <h2>
+                <i class="fas fa-robot"></i>
+                補助金チャットアドバイザー
+            </h2>
+            <p class="mb-0">補助金について何でもお聞きください</p>
+        </div>
+
+        <!-- メッセージエリア -->
+        <div id="chat-messages">
+            <!-- ウェルカムメッセージ -->
+            <div class="message assistant-message">
+                <div class="message-content">
+                    <strong><i class="fas fa-robot"></i> アシスタント</strong>
+                    <div class="mt-2">
+                        こんにちは！補助金アドバイザーです。<br>
+                        以下のような質問にお答えできます：
+                        <ul class="mt-2 mb-0">
+                            <li>IT導入補助金について教えて</li>
+                            <li>小規模事業者持続化補助金の採択率は？</li>
+                            <li>ものづくり補助金の申請条件は？</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="message-time">
+                    {{ "now"|date:"H:i" }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 入力エリア -->
+        <div class="input-area">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="message-input" 
+                    placeholder="補助金について質問してください..." 
+                    autocomplete="off"
+                >
+                <button type="button" id="send-button">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSRF トークン -->
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/enhanced_chat.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{% block title %}補助金アドバイザー{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- カスタムCSS -->
+    {% load static %}
+    <link href="{% static 'css/custom.css' %}" rel="stylesheet" type="text/css">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f8f9fa;
+            line-height: 1.6;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .main-content {
+            min-height: calc(100vh - 160px);
+            padding: 2rem 0;
+        }
+        
+        .footer {
+            background-color: #343a40;
+            color: white;
+            padding: 2rem 0;
+            margin-top: auto;
+        }
+        
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .hero-section {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            border-radius: 15px;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .success-message {
+            background-color: #d1e7dd;
+            color: #0f5132;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid #198754;
+        }
+        
+        .info-message {
+            background-color: #cff4fc;
+            color: #055160;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid #0dcaf0;
+        }
+
+        /* 管理者メニュー専用スタイル */
+        .admin-dropdown {
+            background: linear-gradient(135deg, #dc3545, #b02a37) !important;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-dropdown:hover {
+            background: linear-gradient(135deg, #b02a37, #8b1e29) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+        
+        .admin-dropdown .badge {
+            background: rgba(255, 255, 255, 0.2) !important;
+            color: white;
+        }
+
+        .debug-dropdown-menu {
+            min-width: 320px;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .debug-dropdown-header {
+            background: linear-gradient(135deg, #dc3545, #b02a37);
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 0;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .debug-dropdown-section {
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .debug-dropdown-section:last-child {
+            border-bottom: none;
+        }
+
+        .debug-section-title {
+            padding: 8px 20px 5px;
+            font-size: 0.75rem;
+            color: #6c757d;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        .debug-dropdown-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 20px;
+            color: #495057;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .debug-dropdown-item:hover {
+            background: #f8f9fa;
+            color: #dc3545;
+        }
+
+        .debug-icon {
+            width: 18px;
+            text-align: center;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+
+        .debug-dropdown-item:hover .debug-icon {
+            color: #dc3545;
+        }
+
+        .debug-item-content {
+            flex: 1;
+        }
+
+        .debug-item-title {
+            font-weight: 500;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .debug-item-description {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin: 2px 0 0;
+            line-height: 1.2;
+        }
+
+        .debug-badge {
+            background: #dc3545;
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        /* アニメーション効果 */
+        .debug-dropdown-menu {
+            animation: debugDropdownFadeIn 0.3s ease-out;
+        }
+
+        @keyframes debugDropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* モバイル対応 */
+        @media (max-width: 768px) {
+            .debug-dropdown-menu {
+                min-width: 280px;
+                max-width: 90vw;
+            }
+            
+            .debug-dropdown-item {
+                padding: 15px 18px;
+            }
+            
+            .debug-item-title {
+                font-size: 0.9rem;
+            }
+            
+            .debug-item-description {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- ナビゲーションバー -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'advisor:index' %}">
+                <i class="fas fa-handshake"></i> 補助金アドバイザー
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'advisor:index' %}">
+                            <i class="fas fa-home"></i> ホーム
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'advisor:enhanced_chat_interface' %}">
+                            <i class="fas fa-robot"></i> AI相談
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'advisor:statistics' %}">
+                            <i class="fas fa-chart-bar"></i> 統計
+                        </a>
+                    </li>
+                    {% comment %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-tools"></i> 機能
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'advisor:prediction_dashboard' %}">
+                                <i class="fas fa-crystal-ball"></i> 予測ダッシュボード
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'advisor:trend_analysis' %}">
+                                <i class="fas fa-chart-line"></i> トレンド分析
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'advisor:user_alerts' %}">
+                                <i class="fas fa-bell"></i> アラート
+                            </a></li>
+                        </ul>
+                    </li>
+                    {% endcomment %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <!-- 管理者専用デバッグメニュー -->
+                        {% if user.is_staff %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle admin-dropdown" href="#" id="debugDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cogs"></i> 
+                                管理者ツール
+                                <span class="badge ms-1">DEBUG</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end debug-dropdown-menu" aria-labelledby="debugDropdown">
+                                <li class="debug-dropdown-header">
+                                    <i class="fas fa-shield-alt"></i>
+                                    管理者専用機能
+                                </li>
+
+                                <!-- デバッグ機能セクション -->
+                                <li>
+                                    <h6 class="debug-section-title">🔍 デバッグ機能</h6>
+                                </li>
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:session_list' %}">
+                                        <i class="fas fa-list debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">セッション一覧</div>
+                                            <div class="debug-item-description">全会話セッションの管理・監視</div>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:debug_history' %}">
+                                        <i class="fas fa-search debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">会話履歴デバッグ</div>
+                                            <div class="debug-item-description">詳細な会話分析・トラブルシューティング</div>
+                                        </div>
+                                    </a>
+                                </li>
+
+                                <!-- システム管理セクション -->
+                                <li>
+                                    <h6 class="debug-section-title">⚙️ システム管理</h6>
+                                </li>
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:admin_dashboard' %}">
+                                        <i class="fas fa-tachometer-alt debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">管理ダッシュボード</div>
+                                            <div class="debug-item-description">システム全体の状況確認</div>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'admin:index' %}">
+                                        <i class="fas fa-database debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">Django管理画面</div>
+                                            <div class="debug-item-description">データベース直接操作</div>
+                                        </div>
+                                    </a>
+                                </li>
+
+                                <!-- 分析機能セクション -->
+                                <li>
+                                    <h6 class="debug-section-title">📊 高度分析</h6>
+                                </li>
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:statistics' %}">
+                                        <i class="fas fa-chart-line debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">詳細統計分析</div>
+                                            <div class="debug-item-description">利用状況の詳細レポート</div>
+                                        </div>
+                                    </a>
+                                </li>
+                                {% comment %}
+                                <li>
+                                    <a class="debug-dropdown-item" href="{% url 'advisor:trend_analysis' %}">
+                                        <i class="fas fa-trending-up debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">トレンド分析</div>
+                                            <div class="debug-item-description">補助金需要の傾向分析</div>
+                                        </div>
+                                    </a>
+                                </li>
+                                {% endcomment %}
+
+                                <!-- システム情報セクション -->
+                                <li>
+                                    <h6 class="debug-section-title">ℹ️ システム情報</h6>
+                                </li>
+                                <li>
+                                    <button class="debug-dropdown-item" onclick="showSystemInfo()">
+                                        <i class="fas fa-info-circle debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">システム状況</div>
+                                            <div class="debug-item-description">サーバー・DB・パフォーマンス</div>
+                                        </div>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="debug-dropdown-item" onclick="showApiInfo()">
+                                        <i class="fas fa-code debug-icon"></i>
+                                        <div class="debug-item-content">
+                                            <div class="debug-item-title">API情報</div>
+                                            <div class="debug-item-description">エンドポイント・使用状況</div>
+                                        </div>
+                                        <span class="debug-badge">API</span>
+                                    </button>
+                                </li>
+                            </ul>
+                        </li>
+                        {% endif %}
+
+                        <!-- 通常のユーザーメニュー -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i> {{ user.username }}
+                                {% if user.is_staff %}
+                                    <span class="badge bg-warning ms-1">Admin</span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'advisor:user_alerts' %}">
+                                    <i class="fas fa-bell"></i> アラート
+                                </a></li>
+                                {% if user.is_staff %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><h6 class="dropdown-header">管理機能</h6></li>
+                                    <li><a class="dropdown-item" href="{% url 'advisor:admin_dashboard' %}">
+                                        <i class="fas fa-cog"></i> 管理ダッシュボード
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'admin:index' %}">
+                                        <i class="fas fa-database"></i> Django管理画面
+                                    </a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="confirmLogout(event)">
+                                    <i class="fas fa-sign-out-alt"></i> ログアウト
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">
+                                <i class="fas fa-sign-in-alt"></i> ログイン
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- メインコンテンツ -->
+    <main class="main-content">
+        <div class="container">
+            <!-- メッセージ表示 -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-info-circle"></i> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <!-- エラーメッセージ -->
+            {% if error_message %}
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i> {{ error_message }}
+                </div>
+            {% endif %}
+            
+            <!-- 成功メッセージ -->
+            {% if success_message %}
+                <div class="success-message">
+                    <i class="fas fa-check-circle"></i> {{ success_message }}
+                </div>
+            {% endif %}
+            
+            <!-- 情報メッセージ -->
+            {% if info_message %}
+                <div class="info-message">
+                    <i class="fas fa-info-circle"></i> {{ info_message }}
+                </div>
+            {% endif %}
+            
+            <!-- ページコンテンツ -->
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- フッター -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>補助金アドバイザー</h5>
+                    <p class="mb-0">AIを活用した補助金マッチングシステム</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">
+                        <small class="text-muted">
+                            © {% now "Y" %} 補助金アドバイザー. All rights reserved.
+                        </small>
+                    </p>
+                    <div class="mt-2">
+                        <a href="#" class="text-light me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-light"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- CSRF Token for JavaScript -->
+    {% csrf_token %}
+    <script>
+        // CSRFトークンをグローバル変数として設定
+        window.csrfToken = '{{ csrf_token }}';
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    
+    <!-- カスタムJS -->
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    <!-- 管理者ツール用JavaScript -->
+    <script>
+    // システム情報表示
+    function showSystemInfo() {
+        // システム情報を取得するためのAPIコール（簡易版）
+        const systemInfo = {
+            django_version: 'Django 4.x',
+            python_version: 'Python 3.x',
+            database: 'SQLite/PostgreSQL',
+            server_time: new Date().toLocaleString('ja-JP'),
+            user_sessions: '確認中...',
+            active_chats: '確認中...'
+        };
+
+        const infoText = `
+🖥️ システム情報
+
+📊 基本情報:
+• Django: ${systemInfo.django_version}
+• Python: ${systemInfo.python_version}
+• データベース: ${systemInfo.database}
+• サーバー時刻: ${systemInfo.server_time}
+
+📈 稼働状況:
+• アクティブセッション: ${systemInfo.user_sessions}
+• 進行中チャット: ${systemInfo.active_chats}
+
+🔧 管理者機能:
+• デバッグツール: 利用可能
+• ログ監視: 有効
+• エラー追跡: 有効
+
+💡 ヒント: 詳細な情報は管理ダッシュボードで確認できます
+        `;
+
+        showInfoModal('システム情報', infoText);
+    }
+
+    // API情報表示
+    function showApiInfo() {
+        const apiEndpoints = [
+            {
+                path: '/advisor/api/enhanced-chat/',
+                method: 'POST',
+                description: 'チャットAPI - AI応答生成',
+                status: '稼働中'
+            },
+            {
+                path: '/advisor/api/debug-history/',
+                method: 'GET',
+                description: '履歴デバッグAPI - 会話履歴取得',
+                status: '稼働中'
+            },
+            {
+                path: '/advisor/api/subsidies/',
+                method: 'GET',
+                description: '補助金一覧API - 制度情報取得',
+                status: '稼働中'
+            },
+            {
+                path: '/advisor/debug/sessions/',
+                method: 'GET',
+                description: 'セッション一覧 - 管理画面',
+                status: '稼働中'
+            },
+            {
+                path: '/advisor/debug/history/',
+                method: 'GET',
+                description: '履歴デバッグ - 詳細分析画面',
+                status: '稼働中'
+            }
+        ];
+
+        let apiText = '🔗 利用可能なAPI・エンドポイント\n\n';
+        
+        apiEndpoints.forEach((api, index) => {
+            apiText += `${index + 1}. ${api.path}\n`;
+            apiText += `   📝 ${api.description}\n`;
+            apiText += `   🎯 Method: ${api.method}\n`;
+            apiText += `   ✅ Status: ${api.status}\n\n`;
+        });
+
+        apiText += '💡 ヒント: デバッグ機能は管理者権限が必要です';
+
+        showInfoModal('API情報', apiText);
+    }
+
+    // 情報モーダル表示
+    function showInfoModal(title, content) {
+        // 既存のモーダルがあれば削除
+        const existingModal = document.getElementById('infoModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+            <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);" id="infoModal">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-info-circle"></i> ${title}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" onclick="closeInfoModal()"></button>
+                        </div>
+                        <div class="modal-body">
+                            <pre style="white-space: pre-wrap; font-family: 'Noto Sans JP', sans-serif; font-size: 0.9rem; line-height: 1.4; margin: 0;">${content}</pre>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeInfoModal()">
+                                <i class="fas fa-times"></i> 閉じる
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="copyToClipboard(\`${content}\`)">
+                                <i class="fas fa-copy"></i> コピー
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // エスケープキーでモーダルを閉じる
+        const escapeHandler = function(e) {
+            if (e.key === 'Escape') {
+                closeInfoModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+    }
+
+    function closeInfoModal() {
+        const modal = document.getElementById('infoModal');
+        if (modal) {
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+            }, 200);
+        }
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            // 一時的にボタンのテキストを変更
+            const copyBtn = document.querySelector('#infoModal .btn-primary');
+            const originalText = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check"></i> コピー済み';
+            copyBtn.classList.add('btn-success');
+            copyBtn.classList.remove('btn-primary');
+            
+            setTimeout(() => {
+                copyBtn.innerHTML = originalText;
+                copyBtn.classList.add('btn-primary');
+                copyBtn.classList.remove('btn-success');
+            }, 2000);
+        }).catch(err => {
+            console.error('コピーに失敗しました:', err);
+        });
+    }
+
+    // ログアウト確認機能（既存のコードを維持）
+    function getCSRFToken() {
+        if (window.csrfToken) {
+            return window.csrfToken;
+        }
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            return csrfToken.value;
+        }
+        
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='));
+        
+        if (cookieValue) {
+            return cookieValue.split('=')[1];
+        }
+        
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        if (metaToken) {
+            return metaToken.getAttribute('content');
+        }
+        
+        return null;
+    }
+    
+    function confirmLogout(event) {
+        event.preventDefault();
+        
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+            <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);" id="logoutModal">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning text-dark">
+                            <h5 class="modal-title">
+                                <i class="fas fa-sign-out-alt"></i> ログアウト確認
+                            </h5>
+                        </div>
+                        <div class="modal-body">
+                            <div class="text-center">
+                                <i class="fas fa-question-circle fa-3x text-warning mb-3"></i>
+                                <h6>本当にログアウトしますか？</h6>
+                                <p class="text-muted small">
+                                    ログアウトすると、アラートや管理機能が利用できなくなります。<br>
+                                    基本的な機能は引き続きご利用いただけます。
+                                </p>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeLogoutModal()">
+                                <i class="fas fa-times"></i> キャンセル
+                            </button>
+                            <button type="button" class="btn btn-warning" onclick="executeLogout()">
+                                <i class="fas fa-sign-out-alt"></i> ログアウト
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        const escapeHandler = function(e) {
+            if (e.key === 'Escape') {
+                closeLogoutModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal || e.target.classList.contains('modal')) {
+                closeLogoutModal();
+            }
+        });
+    }
+    
+    function closeLogoutModal() {
+        const modal = document.getElementById('logoutModal');
+        if (modal) {
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+            }, 200);
+        }
+    }
+    
+    function executeLogout() {
+        const modal = document.getElementById('logoutModal');
+        const modalBody = modal.querySelector('.modal-body');
+        const modalFooter = modal.querySelector('.modal-footer');
+        
+        modalBody.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border text-warning mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h6>ログアウト中...</h6>
+                <p class="text-muted small">安全にログアウトしています。</p>
+            </div>
+        `;
+        modalFooter.style.display = 'none';
+        
+        const csrfToken = getCSRFToken();
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "logout" %}';
+        form.style.display = 'none';
+        
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+        } else {
+            console.warn('CSRF token not found, using GET request');
+            form.method = 'GET';
+        }
+        
+        document.body.appendChild(form);
+        
+        setTimeout(() => {
+            form.submit();
+        }, 1000);
+    }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

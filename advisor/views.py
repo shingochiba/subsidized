@@ -172,6 +172,7 @@ def enhanced_chat_api(request):
         
         return JsonResponse({
             'success': True,
+            'response': response.get('answer', ''),
             'session_id': session_id,
             'response': {
                 'answer': response_text,  # 🔥 重要: 文字列で返す
