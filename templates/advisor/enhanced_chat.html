@@ -549,29 +549,6 @@ body {
 </div>
 
 <script>
-<<<<<<< HEAD
-// 🔧 完全修正版 enhanced_chat.html JavaScript部分
-
-class EnhancedContextAwareChatInterface {
-    constructor() {
-        console.log("EnhancedContextAwareChatInterface 初期化開始");
-        this.sessionId = this.generateSessionId();
-        this.isTyping = false;
-        this.conversationHistory = []; // 完全な会話履歴を保持
-        this.currentContext = {
-            targetSubsidy: null,
-            lastTopic: null,
-            confidence: 0
-        }; // 現在の文脈状態
-        this.initializeEventListeners();
-        this.setupQuickActionButtons();
-        this.autoResizeTextarea();
-        console.log("EnhancedContextAwareChatInterface 初期化完了");
-    }
-
-    generateSessionId() {
-        const sessionId = 'enhanced_context_chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-=======
 // 文脈理解対応チャットインターフェース - 最終版
 
 class ContextAwareChatInterface {
@@ -588,7 +565,6 @@ class ContextAwareChatInterface {
 
     generateSessionId() {
         const sessionId = 'context_chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         console.log("セッションID生成:", sessionId);
         return sessionId;
     }
@@ -660,188 +636,6 @@ class ContextAwareChatInterface {
             textarea.style.height = 'auto';
             textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
         }
-<<<<<<< HEAD
-    }
-
-    // 🔧 修正版 updateContext 関数
-    updateContext(contextData) {
-        /**
-         * 会話後に文脈状態を更新
-         */
-        console.log("文脈更新開始:", contextData);
-
-        // 🔥 修正: contextData から正しくメッセージを取得
-        let userMessage = '';
-        let aiResponse = '';
-        
-        if (typeof contextData === 'string') {
-            // 文字列として渡された場合
-            userMessage = contextData;
-        } else if (contextData && typeof contextData === 'object') {
-            // オブジェクトとして渡された場合
-            if (contextData.userMessage) {
-                if (typeof contextData.userMessage === 'string') {
-                    userMessage = contextData.userMessage;
-                } else if (contextData.userMessage.content) {
-                    userMessage = contextData.userMessage.content;
-                }
-            }
-            
-            if (contextData.aiResponse) {
-                if (typeof contextData.aiResponse === 'string') {
-                    aiResponse = contextData.aiResponse;
-                } else if (contextData.aiResponse.content) {
-                    aiResponse = contextData.aiResponse.content;
-                }
-            }
-        }
-
-        // 安全性チェック: 文字列でない場合は変換
-        if (typeof userMessage !== 'string') {
-            userMessage = String(userMessage || '');
-        }
-        if (typeof aiResponse !== 'string') {
-            aiResponse = String(aiResponse || '');
-        }
-
-        console.log("処理するメッセージ:", { userMessage, aiResponse });
-
-        // ユーザーメッセージから補助金を検出
-        const detectedSubsidy = this.detectSubsidyInMessage(userMessage);
-        if (detectedSubsidy) {
-            this.currentContext.targetSubsidy = detectedSubsidy;
-            this.currentContext.confidence = 0.9;
-            console.log(`新しい対象補助金検出: ${detectedSubsidy}`);
-        }
-
-        // AIの回答からも補助金情報を検出
-        if (aiResponse) {
-            const aiDetectedSubsidy = this.detectSubsidyInMessage(aiResponse);
-            if (aiDetectedSubsidy && !this.currentContext.targetSubsidy) {
-                this.currentContext.targetSubsidy = aiDetectedSubsidy;
-                this.currentContext.confidence = 0.8;
-                console.log(`AI回答から対象補助金検出: ${aiDetectedSubsidy}`);
-            }
-        }
-
-        // トピックの更新
-        this.currentContext.lastTopic = this.detectTopicInMessage(userMessage);
-
-        // 文脈の持続性を下げる（新しい話題になった場合）
-        if (this.isNewTopicStart(userMessage)) {
-            this.currentContext.confidence *= 0.7;
-            console.log("新しい話題開始の可能性 - 文脈信頼度減少");
-        }
-
-        // 文脈の信頼度が低い場合はリセット
-        if (this.currentContext.confidence < 0.3) {
-            console.log("文脈信頼度が低いためリセット");
-            this.currentContext = {
-                targetSubsidy: null,
-                lastTopic: null,
-                confidence: 0
-            };
-        }
-
-        console.log("文脈更新完了:", this.currentContext);
-    }
-
-    // 🔧 修正版 detectSubsidyInMessage 関数
-    detectSubsidyInMessage(message) {
-        /**
-         * メッセージから補助金名を検出
-         */
-        // 🔥 修正: 安全性チェック追加
-        if (!message || typeof message !== 'string') {
-            console.log("detectSubsidyInMessage: メッセージが文字列ではありません", typeof message, message);
-            return null;
-        }
-
-        const messageLower = message.toLowerCase();
-        
-        const subsidyPatterns = {
-            'IT導入補助金': [
-                'it導入補助金', 'IT導入補助金', 'it導入', 'IT導入',
-                'itツール', 'ITツール', 'ソフトウェア導入', 'デジタル化'
-            ],
-            '事業再構築補助金': [
-                '事業再構築補助金', '事業再構築', '再構築', '事業転換',
-                '新分野展開', '業態転換', '新事業'
-            ],
-            'ものづくり補助金': [
-                'ものづくり補助金', 'ものづくり', '設備投資', '機械導入',
-                '装置', '製造業', '生産性向上'
-            ],
-            '小規模事業者持続化補助金': [
-                '小規模事業者持続化補助金', '持続化補助金', '持続化', 
-                '小規模事業者', '販路開拓', '広告宣伝'
-            ]
-        };
-
-        for (const [subsidyName, patterns] of Object.entries(subsidyPatterns)) {
-            for (const pattern of patterns) {
-                if (messageLower.includes(pattern.toLowerCase())) {
-                    return subsidyName;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    // 🔧 修正版 detectTopicInMessage 関数
-    detectTopicInMessage(message) {
-        /**
-         * メッセージからトピックを検出
-         */
-        // 🔥 修正: 安全性チェック追加
-        if (!message || typeof message !== 'string') {
-            console.log("detectTopicInMessage: メッセージが文字列ではありません", typeof message, message);
-            return null;
-        }
-
-        const messageLower = message.toLowerCase();
-        
-        const topicPatterns = {
-            'adoption_rate': ['採択率', '成功率', '確率', '通る', '通りやすい', '上げる', '高める'],
-            'application_process': ['申請方法', '申請', '手続き', 'やり方', 'プロセス', '流れ'],
-            'requirements': ['要件', '条件', '対象', '資格', 'できる', '当てはまる'],
-            'schedule': ['スケジュール', '期限', 'タイミング', 'いつ', '時期'],
-            'tips': ['コツ', '秘訣', 'ポイント', 'アドバイス', 'ノウハウ']
-        };
-
-        for (const [topic, keywords] of Object.entries(topicPatterns)) {
-            for (const keyword of keywords) {
-                if (messageLower.includes(keyword)) {
-                    return topic;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    // 🔧 修正版 isNewTopicStart 関数
-    isNewTopicStart(message) {
-        /**
-         * 新しい話題の開始を検出
-         */
-        // 🔥 修正: 安全性チェック追加
-        if (!message || typeof message !== 'string') {
-            console.log("isNewTopicStart: メッセージが文字列ではありません", typeof message, message);
-            return false;
-        }
-        
-        const messageLower = message.toLowerCase();
-        
-        const newTopicIndicators = [
-            'ところで', 'さて', '話は変わって', '別の', '他の', '違う',
-            'について教えて', 'について知りたい'
-        ];
-
-        return newTopicIndicators.some(indicator => messageLower.includes(indicator));
-=======
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
     }
 
     async sendMessage() {
@@ -851,13 +645,8 @@ class ContextAwareChatInterface {
         const message = chatInput.value.trim();
 
         console.log("送信メッセージ:", message);
-<<<<<<< HEAD
-        console.log("現在の文脈:", this.currentContext);
-        console.log("isTyping:", this.isTyping);
-=======
         console.log("isTyping:", this.isTyping);
         console.log("現在の会話履歴:", this.conversationHistory);
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
 
         if (!message || this.isTyping) {
             console.log("送信中止 - メッセージが空または送信中");
@@ -890,95 +679,22 @@ class ContextAwareChatInterface {
             
             this.hideTypingIndicator();
             
-<<<<<<< HEAD
-            if (response.success && response.response) {
-                console.log("表示する回答:", response.response);
-                console.log("文脈検出:", response.response.detected_subsidy);
-                
-                // 🔥 重要: response.response.answer を直接渡す
-                const answerContent = response.response.answer;
-                this.addMessageToChat('assistant', answerContent);
-=======
             if (response.success) {
                 const answer = response.response || 'すみません、回答を取得できませんでした。';
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
                 
                 // アシスタントメッセージを履歴に追加
                 const assistantMessage = {
                     role: 'assistant',
-<<<<<<< HEAD
-                    content: answerContent,
-                    timestamp: new Date(),
-                    metadata: {
-                        context_detected: response.response.detected_subsidy,
-                        confidence_score: response.response.confidence_score,
-                        model_used: response.response.model_used
-=======
                     content: answer,
                     timestamp: new Date(),
                     metadata: {
                         context_detected: response.context_detected,
                         confidence_score: response.confidence_score,
                         model_used: response.model_used
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
                     }
                 };
                 this.conversationHistory.push(assistantMessage);
                 
-<<<<<<< HEAD
-                // 🔥 修正: 文脈更新の呼び出し方法
-                this.updateContext({
-                    userMessage: message,  // 文字列として渡す
-                    aiResponse: answerContent,  // 文字列として渡す
-                    currentContext: this.currentContext
-                });
-                
-                // 推奨補助金があれば表示
-                if (response.response.recommended_subsidies && response.response.recommended_subsidies.length > 0) {
-                    this.showRecommendedSubsidies(response.response.recommended_subsidies);
-                }
-            } else {
-                throw new Error(response.error || 'Context Aware API failed');
-            }
-        } catch (error) {
-            console.log('Context Aware Chat API Error:', error);
-            console.log('フォールバックAPI試行');
-            
-            try {
-                // フォールバック API を試行
-                const fallbackResponse = await this.callFallbackAPI(message);
-                
-                if (fallbackResponse.success && fallbackResponse.response) {
-                    // 🔥 重要: fallback でも answer を直接渡す
-                    const answerContent = fallbackResponse.response.answer;
-                    this.addMessageToChat('assistant', answerContent);
-                    
-                    // アシスタントメッセージを履歴に追加
-                    const assistantMessage = {
-                        role: 'assistant',
-                        content: answerContent,
-                        timestamp: new Date(),
-                        metadata: {
-                            model_used: 'fallback'
-                        }
-                    };
-                    this.conversationHistory.push(assistantMessage);
-                    
-                    // 🔥 修正: 文脈更新の呼び出し方法
-                    this.updateContext({
-                        userMessage: message,  // 文字列として渡す
-                        aiResponse: answerContent,  // 文字列として渡す
-                        currentContext: this.currentContext
-                    });
-                } else {
-                    throw new Error(fallbackResponse.error || 'Fallback API failed');
-                }
-                
-            } catch (fallbackError) {
-                console.log('Fallback API Error:', fallbackError);
-                
-                this.hideTypingIndicator();
-=======
                 console.log("表示する回答:", answer);
                 console.log("文脈検出:", response.context_detected);
                 console.log("更新された会話履歴:", this.conversationHistory);
@@ -1010,7 +726,6 @@ class ContextAwareChatInterface {
                 }
             } catch (fallbackError) {
                 console.error('Fallback API Error:', fallbackError);
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
                 this.addMessageToChat('assistant', 'システムエラーが発生しました。しばらく時間をおいてからお試しください。');
             }
         }
@@ -1021,10 +736,6 @@ class ContextAwareChatInterface {
         console.log("URL: /advisor/api/context-aware-chat/");
         console.log("Message:", message);
         console.log("Session ID:", this.sessionId);
-<<<<<<< HEAD
-        console.log("Current Context:", this.currentContext);
-=======
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         
         // 会話履歴から最新の5つの対話を文脈として送信
         const recentContext = this.conversationHistory.slice(-5).map(msg => ({
@@ -1032,27 +743,11 @@ class ContextAwareChatInterface {
             content: msg.content,
             timestamp: msg.timestamp
         }));
-<<<<<<< HEAD
-
-        // 現在の文脈情報を追加
-        const enhancedContext = {
-            ...recentContext,
-            currentSubsidy: this.currentContext.targetSubsidy,
-            contextConfidence: this.currentContext.confidence,
-            lastTopic: this.currentContext.lastTopic
-        };
-=======
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         
         const requestData = {
             message: message,
             session_id: this.sessionId,
-<<<<<<< HEAD
-            conversation_context: recentContext,
-            enhanced_context: enhancedContext
-=======
             conversation_context: recentContext
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         };
         
         console.log("Request Data:", requestData);
@@ -1083,30 +778,16 @@ class ContextAwareChatInterface {
         console.log("Fallback API呼び出し");
         console.log("URL: /advisor/api/enhanced-chat/");
         
-<<<<<<< HEAD
-        // 強化された文脈を考慮した質問の変換
-        const enhancedMessage = this.createContextualMessage(message);
-=======
         // 文脈を考慮した質問の強化
         const enhancedMessage = this.enhanceMessageWithContext(message);
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         
         const requestData = {
             message: enhancedMessage,
             session_id: this.sessionId,
             conversation_context: this.conversationHistory.slice(-3), // 最新3件
-<<<<<<< HEAD
-            context: this.buildAdvancedContextString(),
-            current_subsidy: this.currentContext.targetSubsidy
-        };
-        
-        console.log("Fallback Request Data:", requestData);
-        
-=======
             context: this.buildContextString()
         };
         
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         const response = await fetch('/advisor/api/enhanced-chat/', {
             method: 'POST',
             headers: {
@@ -1123,81 +804,6 @@ class ContextAwareChatInterface {
         return await response.json();
     }
 
-<<<<<<< HEAD
-    createContextualMessage(message) {
-        /**
-         * 現在の文脈を考慮してメッセージを強化
-         */
-        const messageLower = message.toLowerCase();
-        const targetSubsidy = this.currentContext.targetSubsidy;
-        const lastTopic = this.currentContext.lastTopic;
-
-        console.log(`文脈考慮メッセージ作成: "${message}" (対象: ${targetSubsidy}, トピック: ${lastTopic})`);
-
-        // 対象補助金が特定されている場合の質問強化
-        if (targetSubsidy && this.currentContext.confidence > 0.5) {
-            
-            // 申請方法に関する質問
-            if (messageLower.includes('申請') || messageLower.includes('方法') || 
-                messageLower.includes('手続き') || messageLower.includes('やり方')) {
-                return `${targetSubsidy}の申請方法について詳しく教えて`;
-            }
-            
-            // 要件に関する質問
-            if (messageLower.includes('要件') || messageLower.includes('条件') || 
-                messageLower.includes('対象') || messageLower.includes('資格')) {
-                return `${targetSubsidy}の申請要件について教えて`;
-            }
-            
-            // スケジュールに関する質問
-            if (messageLower.includes('いつ') || messageLower.includes('時期') || 
-                messageLower.includes('期限') || messageLower.includes('スケジュール')) {
-                return `${targetSubsidy}の申請スケジュールについて教えて`;
-            }
-            
-            // コツ・ポイントに関する質問
-            if (messageLower.includes('コツ') || messageLower.includes('ポイント') || 
-                messageLower.includes('秘訣') || messageLower.includes('アドバイス')) {
-                return `${targetSubsidy}の申請のコツとポイントについて教えて`;
-            }
-            
-            // 採択率向上に関する質問（既存）
-            if (messageLower.includes('採択率') || messageLower.includes('確率') || 
-                messageLower.includes('上げる') || messageLower.includes('高める')) {
-                return `${targetSubsidy}の採択率を上げる方法について教えて`;
-            }
-
-            // 一般的な疑問詞の場合
-            if (messageLower.match(/^(どう|どのよう|なぜ|なに|何).*/)) {
-                return `${targetSubsidy}について：${message}`;
-            }
-        }
-
-        console.log(`文脈強化結果: "${message}" → "${message}" (変更なし)`);
-        return message;
-    }
-
-    buildAdvancedContextString() {
-        /**
-         * 高度な文脈文字列を構築
-         */
-        let context = "";
-        
-        // 現在の文脈情報
-        if (this.currentContext.targetSubsidy) {
-            context += `【現在の話題】${this.currentContext.targetSubsidy}\n`;
-            context += `【文脈信頼度】${Math.round(this.currentContext.confidence * 100)}%\n`;
-        }
-        
-        if (this.currentContext.lastTopic) {
-            context += `【最新トピック】${this.currentContext.lastTopic}\n`;
-        }
-        
-        context += "\n【会話履歴】\n";
-        
-        // 最新の3つの会話から文脈を構築
-        const recentMessages = this.conversationHistory.slice(-3);
-=======
     enhanceMessageWithContext(message) {
         // 簡易的な文脈理解で質問を強化
         const messageLower = message.toLowerCase();
@@ -1237,30 +843,15 @@ class ContextAwareChatInterface {
         // 最新の3つの会話から文脈を構築
         const recentMessages = this.conversationHistory.slice(-3);
         let context = "";
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         
         for (const msg of recentMessages) {
             if (msg.role === 'user') {
                 context += `ユーザー: ${msg.content}\n`;
             } else {
-<<<<<<< HEAD
-                // AI回答は最初の100文字のみ
-                const shortResponse = msg.content.length > 100 
-                    ? msg.content.substring(0, 100) + "..."
-                    : msg.content;
-                context += `AI: ${shortResponse}\n`;
-            }
-        }
-        
-        context += "\n【重要】上記の文脈を考慮して、継続的な会話として回答してください。";
-        
-        console.log("構築された高度文脈:", context);
-=======
                 context += `アシスタント: ${msg.content.substring(0, 100)}...\n`;
             }
         }
         
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         return context;
     }
 
@@ -1292,20 +883,9 @@ class ContextAwareChatInterface {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'typing-indicator';
         typingDiv.id = 'typing-indicator';
-        
-        // 文脈に応じたメッセージ
-        let typingMessage = "AIが回答を作成中";
-        if (this.currentContext.targetSubsidy) {
-            typingMessage = `AIが${this.currentContext.targetSubsidy}について回答を作成中`;
-        }
-        
         typingDiv.innerHTML = `
             <div class="typing-content">
-<<<<<<< HEAD
-                <span>${typingMessage}</span>
-=======
                 <span>AIが文脈を理解して回答を作成中</span>
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
@@ -1316,11 +896,7 @@ class ContextAwareChatInterface {
         
         chatContainer.appendChild(typingDiv);
         chatContainer.scrollTop = chatContainer.scrollHeight;
-<<<<<<< HEAD
-        console.log("タイピングインジケーター表示:", typingMessage);
-=======
         console.log("タイピングインジケーター表示");
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
     }
 
     hideTypingIndicator() {
@@ -1332,11 +908,7 @@ class ContextAwareChatInterface {
         }
     }
 
-    // 🔧 修正版 addMessageToChat 関数
     addMessageToChat(type, content) {
-<<<<<<< HEAD
-        console.log(`メッセージ追加: ${type} -`, content);
-=======
         console.log(`メッセージ追加: ${type} - ${content ? content.substring(0, 50) + '...' : 'undefined'}`);
         
         // 安全性チェック
@@ -1344,7 +916,6 @@ class ContextAwareChatInterface {
             console.warn("メッセージがstring型ではありません:", typeof content, content);
             content = String(content || '回答を取得できませんでした');
         }
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         
         const chatContainer = document.getElementById('chat-messages');
         if (!chatContainer) {
@@ -1352,31 +923,6 @@ class ContextAwareChatInterface {
             return;
         }
         
-<<<<<<< HEAD
-        // 🔥 重要: contentの安全な処理
-        let safeContent = '';
-        
-        if (content === null || content === undefined) {
-            console.warn('コンテンツがnull/undefinedです');
-            safeContent = '<em>内容がありません</em>';
-        } else if (typeof content === 'object') {
-            // オブジェクトの場合は文字列に変換
-            console.warn('コンテンツがオブジェクトです:', content);
-            
-            if (content.answer) {
-                safeContent = String(content.answer);
-            } else if (content.response && content.response.answer) {
-                safeContent = String(content.response.answer);
-            } else {
-                safeContent = JSON.stringify(content, null, 2);
-            }
-        } else {
-            // 文字列に変換
-            safeContent = String(content);
-        }
-        
-=======
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message ${type}-message slide-up`;
         
@@ -1388,7 +934,7 @@ class ContextAwareChatInterface {
         if (type === 'user') {
             messageDiv.innerHTML = `
                 <div class="message-content user-content">
-                    <div class="message-text">${this.escapeHtml(safeContent)}</div>
+                    <div class="message-text">${this.escapeHtml(content)}</div>
                     <div class="message-time">${timestamp}</div>
                 </div>
                 <div class="message-avatar user-avatar">
@@ -1401,7 +947,7 @@ class ContextAwareChatInterface {
                     <i class="fas fa-robot"></i>
                 </div>
                 <div class="message-content assistant-content">
-                    <div class="message-text">${this.formatAssistantMessage(safeContent)}</div>
+                    <div class="message-text">${this.formatAssistantMessage(content)}</div>
                     <div class="message-time">${timestamp}</div>
                 </div>
             `;
@@ -1413,21 +959,8 @@ class ContextAwareChatInterface {
         console.log("メッセージ追加完了");
     }
 
-    // 🔧 修正版 formatAssistantMessage 関数
     formatAssistantMessage(content) {
         // 安全性チェック
-<<<<<<< HEAD
-        if (content === null || content === undefined) {
-            return '<em>内容がありません</em>';
-        }
-        
-        // 文字列に変換
-        let str = String(content);
-        
-        try {
-            // HTMLエスケープしてからMarkdown風フォーマット
-            let escaped = this.escapeHtml(str);
-=======
         if (typeof content !== 'string') {
             content = String(content || '');
         }
@@ -1435,26 +968,10 @@ class ContextAwareChatInterface {
         try {
             // HTMLエスケープしてからMarkdown風フォーマット
             let escaped = this.escapeHtml(content);
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
             
             // Markdownライクな書式をHTMLに変換
             return escaped
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-<<<<<<< HEAD
-                .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
-                .replace(/`(.*?)`/g, '<code class="bg-light px-1 rounded">$1</code>')
-                .replace(/^### (.*?)$/gm, '<h6 class="text-primary mt-3 mb-2">$1</h6>')
-                .replace(/^## (.*?)$/gm, '<h5 class="text-primary mt-3 mb-2">$1</h5>')
-                .replace(/^# (.*?)$/gm, '<h4 class="text-primary mt-3 mb-2">$1</h4>')
-                .replace(/^- (.*?)$/gm, '<div style="margin: 4px 0; padding-left: 16px;">• $1</div>')
-                .replace(/^\* (.*?)$/gm, '<div style="margin: 4px 0; padding-left: 16px;">• $1</div>')
-                .replace(/^\d+\. (.*?)$/gm, '<div style="margin: 4px 0; padding-left: 16px;">$1</div>')
-                .replace(/\n\n/g, '</p><p style="margin: 8px 0;">')
-                .replace(/\n/g, '<br>');
-        } catch (error) {
-            console.error("メッセージフォーマットエラー:", error);
-            return this.escapeHtml(str).replace(/\n/g, '<br>');
-=======
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
                 .replace(/`(.*?)`/g, '<code>$1</code>')
                 .replace(/^### (.*?)$/gm, '<h4 style="margin: 12px 0 8px 0; font-weight: 600;">$1</h4>')
@@ -1465,23 +982,16 @@ class ContextAwareChatInterface {
         } catch (error) {
             console.error("メッセージフォーマットエラー:", error);
             return this.escapeHtml(content).replace(/\n/g, '<br>');
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         }
     }
 
-    // 🔧 修正版 escapeHtml 関数
     escapeHtml(text) {
-<<<<<<< HEAD
-        if (text === null || text === undefined) {
-            return '';
-=======
         if (typeof text !== 'string') {
             text = String(text || '');
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
         }
         
         const div = document.createElement('div');
-        div.textContent = String(text);
+        div.textContent = text;
         return div.innerHTML;
     }
 
@@ -1505,19 +1015,6 @@ class ContextAwareChatInterface {
 
 // ページ読み込み時に初期化
 document.addEventListener('DOMContentLoaded', function() {
-<<<<<<< HEAD
-    console.log("DOM読み込み完了 - 強化文脈理解チャットインターフェース初期化");
-    try {
-        window.chatInterface = new EnhancedContextAwareChatInterface();
-        console.log("強化文脈理解チャットインターフェース初期化成功");
-        
-    } catch (error) {
-        console.error("強化文脈理解チャットインターフェース初期化エラー:", error);
-    }
-});
-
-console.log("強化文脈理解対応チャットスクリプト読み込み完了");
-=======
     console.log("DOM読み込み完了 - 文脈理解チャットインターフェース初期化");
     try {
         window.chatInterface = new ContextAwareChatInterface();
@@ -1529,7 +1026,6 @@ console.log("強化文脈理解対応チャットスクリプト読み込み完�
 });
 
 console.log("文脈理解対応チャットスクリプト読み込み完了");
->>>>>>> 39ac75daff7daa3a57dec53e2eaf631ee72ed398
 </script>
 {% csrf_token %}
 {% endblock %}
